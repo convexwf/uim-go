@@ -6,16 +6,30 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
+
+// setupRouter sets up a gin engine for testing.
+func setupRouter() *gin.Engine {
+	router := gin.Default()
+	router.GET("/echo", echo)
+	return router
+}
 
 // TestEcho tests the echo WebSocket server.
 func TestEcho(t *testing.T) {
 	// Create a test server to serve the echo handler
-	server := httptest.NewServer(http.HandlerFunc(echo))
-	defer server.Close()
+	router := setupRouter()
 
-	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/echo"
+	recorder := httptest.NewRecorder()
+	request, err := http.NewRequest("GET", "/echo", nil)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+	router.ServeHTTP(recorder, request)
+
+	url := "ws" + strings.TrimPrefix(recorder.Result().Header.Get("Location"), "http") + "/echo"
 
 	// Upgrade the recorded response to a WebSocket connection
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
