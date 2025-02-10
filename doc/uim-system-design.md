@@ -1,9 +1,35 @@
-# UIM System Design
+# UIM System Design (Extended/Ultimate Version)
 
 **Document Version:** 1.0  
-**Last Updated:** January 5, 2026  
+**Last Updated:** `2025-02-10`  
 **Author:** System Design Team  
-**Status:** Design Review
+**Status:** Design Review  
+**Document Type:** Extended/Ultimate Implementation Plan
+
+---
+
+## ⚠️ Document Purpose & Scope
+
+**This document describes an enterprise-grade, large-scale IM system design** suitable for:
+- **Production systems** handling 50M+ DAU
+- **Multi-region deployments** with high availability requirements
+- **Interview preparation** and system design discussions
+- **Future scaling** when the project grows beyond initial MVP
+
+**For current development**, please refer to the **simplified version**: [`uim-system-design-simplified.md`](./uim-system-design-simplified.md)
+
+**Key Characteristics of This Design:**
+- Microservices architecture with service separation
+- Distributed systems (Cassandra, Kafka, Redis Cluster)
+- Multi-region active-active deployment
+- Enterprise-grade observability and monitoring
+- 32-week development timeline
+
+**When to Use This Document:**
+- System design interviews
+- Understanding large-scale IM architecture
+- Planning for future expansion (when DAU > 100K)
+- Learning distributed systems concepts
 
 ---
 
@@ -100,6 +126,7 @@ The following are explicitly **out of scope** for the initial release:
 ### 2.1 Functional Requirements
 
 #### Must Have (P0)
+
 1. **User Authentication**
    - Users must authenticate before establishing connections
    - Support OAuth 2.0 and token-based authentication
@@ -139,12 +166,14 @@ The following are explicitly **out of scope** for the initial release:
    - Include message preview and sender information
 
 #### Should Have (P1)
+
 1. **Message Search**: Search within recent conversations (last 30 days)
 2. **Typing Indicators**: Show when users are composing messages
 3. **User Blocking**: Prevent unwanted communication
 4. **Read Receipts**: Optional read receipt privacy settings
 
 #### Nice to Have (P2)
+
 1. **Message Deletion**: Delete messages from conversation history
 2. **User Profiles**: Rich user profile information
 3. **Status Messages**: Custom status text and availability
@@ -152,6 +181,7 @@ The following are explicitly **out of scope** for the initial release:
 ### 2.2 Non-Functional Requirements
 
 #### Performance Requirements
+
 - **Latency**:
   - P50: < 100ms for message delivery
   - P95: < 200ms for message delivery
@@ -169,6 +199,7 @@ The following are explicitly **out of scope** for the initial release:
   - Average 10-20% of DAU online simultaneously
 
 #### Reliability Requirements
+
 - **Availability**: 99.95% uptime (< 4.38 hours downtime per year)
 - **Durability**: 99.999999999% (11 nines) message durability
 - **Message Delivery**: At-least-once delivery guarantee
@@ -176,12 +207,14 @@ The following are explicitly **out of scope** for the initial release:
 - **Disaster Recovery**: RPO < 1 second, RTO < 5 minutes
 
 #### Scalability Requirements
+
 - **Horizontal Scaling**: Auto-scale based on load metrics
 - **Geographic Distribution**: Multi-region active-active deployment
 - **Database Sharding**: Partition data across multiple database instances
 - **Cache Layer**: Distributed caching for hot data
 
 #### Security Requirements
+
 - **Authentication**: OAuth 2.0 with JWT tokens
 - **Authorization**: Role-based access control (RBAC)
 - **Transport Security**: TLS 1.3 for all client-server communication
@@ -190,6 +223,7 @@ The following are explicitly **out of scope** for the initial release:
 - **Audit Logging**: Comprehensive security event logging
 
 #### Compliance Requirements
+
 - **Data Privacy**: GDPR and CCPA compliance
 - **Data Residency**: Support region-specific data storage
 - **Audit Trail**: Immutable audit logs for security events
@@ -235,15 +269,17 @@ The following are explicitly **out of scope** for the initial release:
 The UIM system follows a **distributed, microservices-oriented architecture** with clear separation between stateless and stateful components.
 
 **Architecture Style**: 
+
 - Hybrid microservices with domain-driven design principles
 - Event-driven for asynchronous message processing
 - Real-time WebSocket-based communication for chat
 - RESTful HTTP for stateless operations
 
 **System Layers**:
+
 1. **Client Layer**: Web, iOS, Android applications
 2. **Edge Layer**: Load balancers, CDN, API gateways
-3. **Service Layer**: 
+3. **Service Layer**
    - Stateless services (API servers)
    - Stateful services (Chat servers, Presence servers)
 4. **Message Processing Layer**: Message queues, event streams
@@ -251,6 +287,7 @@ The UIM system follows a **distributed, microservices-oriented architecture** wi
 6. **Infrastructure Layer**: Service discovery, monitoring, logging
 
 **Key Architectural Principles**:
+
 - **Stateless API servers**: Enable horizontal scaling and simplified deployment
 - **Stateful chat servers**: Maintain persistent WebSocket connections
 - **Asynchronous processing**: Decouple message persistence from delivery
@@ -259,125 +296,139 @@ The UIM system follows a **distributed, microservices-oriented architecture** wi
 
 ### 4.2 Architecture Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           Client Layer                                   │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                 │
-│  │  Web Client  │  │  iOS Client  │  │Android Client│                 │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘                 │
-│         │                  │                  │                          │
-│         │ HTTP/WS          │ HTTP/WS          │ HTTP/WS                  │
-└─────────┼──────────────────┼──────────────────┼──────────────────────────┘
-          │                  │                  │
-          ▼                  ▼                  ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          Edge Layer                                      │
-│         ┌────────────────────────────────────────┐                      │
-│         │         Load Balancer (Layer 7)         │                      │
-│         └────────────┬───────────────────────────┘                      │
-└──────────────────────┼──────────────────────────────────────────────────┘
-                       │
-          ┌────────────┴────────────┐
-          │                         │
-          ▼ HTTP                    ▼ WS
-┌─────────────────────┐   ┌─────────────────────┐
-│   API Servers       │   │  Chat Servers       │
-│   (Stateless)       │   │  (Stateful)         │
-│ ┌─────────────────┐ │   │ ┌─────────────────┐ │
-│ │ Authentication  │ │   │ │ WebSocket Mgmt  │ │
-│ │ User Profile    │ │   │ │ Message Routing │ │
-│ │ Group Mgmt      │ │   │ │ Session Handling│ │
-│ └─────────────────┘ │   │ └─────────────────┘ │
-└──────────┬──────────┘   └──────────┬──────────┘
-           │                         │
-           │              ┌──────────┴──────────┐
-           │              │                     │
-           ▼              ▼                     ▼
-┌─────────────────────────────────┐   ┌─────────────────────┐
-│   Presence Servers              │   │  Notification Srv   │
-│ ┌─────────────────────────────┐ │   │ ┌─────────────────┐ │
-│ │ Online Status Management    │ │   │ │ APNs / FCM      │ │
-│ │ Heartbeat Processing        │ │   │ │ Push Delivery   │ │
-│ └─────────────────────────────┘ │   │ └─────────────────┘ │
-└─────────────────────────────────┘   └─────────────────────┘
-           │                                   │
-           ▼                                   ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     Message Processing Layer                             │
-│  ┌──────────────────────────────────────────────────────────┐           │
-│  │            Message Sync Queue (Kafka/RabbitMQ)           │           │
-│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐         │           │
-│  │  │  User A    │  │  User B    │  │  User C    │  ...    │           │
-│  │  │   Queue    │  │   Queue    │  │   Queue    │         │           │
-│  │  └────────────┘  └────────────┘  └────────────┘         │           │
-│  └──────────────────────────────────────────────────────────┘           │
-└─────────────────────────────────────────────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         Storage Layer                                    │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐        │
-│  │  Message Store  │  │  User Store     │  │  Presence Store │        │
-│  │  (Cassandra/    │  │  (PostgreSQL)   │  │  (Redis)        │        │
-│  │   HBase)        │  │                 │  │                 │        │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘        │
-│                                                                          │
-│  ┌─────────────────────────────────────────────────────────┐           │
-│  │          Distributed Cache (Redis Cluster)               │           │
-│  └─────────────────────────────────────────────────────────┘           │
-└─────────────────────────────────────────────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Infrastructure Layer                                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                 │
-│  │   Service    │  │  Monitoring  │  │   Logging    │                 │
-│  │  Discovery   │  │  (Prometheus)│  │ (ELK Stack)  │                 │
-│  │ (Zookeeper)  │  │              │  │              │                 │
-│  └──────────────┘  └──────────────┘  └──────────────┘                 │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph ClientLayer["Client Layer"]
+        WebClient[Web Client]
+        iOSClient[iOS Client]
+        AndroidClient[Android Client]
+    end
+    
+    subgraph EdgeLayer["Edge Layer"]
+        LB[Load Balancer<br/>Layer 7]
+    end
+    
+    subgraph ServiceLayer["Service Layer"]
+        subgraph Stateless["Stateless Services"]
+            APIServer[API Servers<br/>- Authentication<br/>- User Profile<br/>- Group Mgmt]
+        end
+        
+        subgraph Stateful["Stateful Services"]
+            ChatServer[Chat Servers<br/>- WebSocket Mgmt<br/>- Message Routing<br/>- Session Handling]
+        end
+        
+        PresenceServer[Presence Servers<br/>- Online Status<br/>- Heartbeat Processing]
+        NotificationServer[Notification Server<br/>- APNs / FCM<br/>- Push Delivery]
+    end
+    
+    subgraph MessageLayer["Message Processing Layer"]
+        MessageQueue[Message Sync Queue<br/>Kafka/RabbitMQ]
+        UserAQueue[User A Queue]
+        UserBQueue[User B Queue]
+        UserCQueue[User C Queue]
+    end
+    
+    subgraph StorageLayer["Storage Layer"]
+        MessageStore[Message Store<br/>Cassandra/HBase]
+        UserStore[User Store<br/>PostgreSQL]
+        PresenceStore[Presence Store<br/>Redis]
+        Cache[Distributed Cache<br/>Redis Cluster]
+    end
+    
+    subgraph InfraLayer["Infrastructure Layer"]
+        ServiceDiscovery[Service Discovery<br/>Zookeeper/Consul]
+        Monitoring[Monitoring<br/>Prometheus]
+        Logging[Logging<br/>ELK Stack]
+    end
+    
+    WebClient -->|HTTP/WS| LB
+    iOSClient -->|HTTP/WS| LB
+    AndroidClient -->|HTTP/WS| LB
+    
+    LB -->|HTTP| APIServer
+    LB -->|WS| ChatServer
+    
+    ChatServer --> PresenceServer
+    ChatServer --> NotificationServer
+    
+    PresenceServer --> MessageQueue
+    NotificationServer --> MessageQueue
+    
+    MessageQueue --> UserAQueue
+    MessageQueue --> UserBQueue
+    MessageQueue --> UserCQueue
+    
+    UserAQueue --> MessageStore
+    UserBQueue --> MessageStore
+    UserCQueue --> MessageStore
+    
+    APIServer --> UserStore
+    APIServer --> Cache
+    ChatServer --> MessageStore
+    ChatServer --> Cache
+    PresenceServer --> PresenceStore
+    
+    APIServer --> ServiceDiscovery
+    ChatServer --> ServiceDiscovery
+    PresenceServer --> ServiceDiscovery
+    
+    APIServer --> Monitoring
+    ChatServer --> Monitoring
+    PresenceServer --> Monitoring
+    
+    APIServer --> Logging
+    ChatServer --> Logging
+    PresenceServer --> Logging
 ```
 
 ### 4.3 Component Responsibilities
 
 #### Client Layer
+
 - **Responsibility**: User interface and WebSocket connection management
 - **Technologies**: React (Web), Swift (iOS), Kotlin (Android)
 - **Key Functions**: Render UI, maintain WebSocket connection, handle reconnection
 
 #### Edge Layer
+
 - **Load Balancer**: Route HTTP requests to API servers, health checks
 - **Responsibilities**: SSL termination, DDoS protection, rate limiting
 
 #### Stateless Services (API Servers)
+
 - **Authentication Service**: OAuth 2.0, JWT token generation and validation
 - **User Profile Service**: User information CRUD operations
 - **Group Management Service**: Create, update, delete groups; manage membership
 - **Service Discovery Client**: Query available chat servers for client connection
 
 #### Stateful Services (Chat Servers)
+
 - **WebSocket Management**: Maintain persistent connections with clients
 - **Message Routing**: Route incoming messages to appropriate recipients
 - **Session Management**: Track user sessions and device connections
 - **Heartbeat Processing**: Monitor client health via periodic heartbeats
 
 #### Presence Servers
+
 - **Online Status**: Track and broadcast user online/offline status
 - **Heartbeat Handler**: Process client heartbeats, update presence
 - **Status Fanout**: Publish status changes to interested subscribers
 
 #### Message Processing Layer
+
 - **Message Sync Queue**: Per-user queues for message delivery
 - **Event Processing**: Asynchronous message persistence and fanout
 - **Delivery Orchestration**: Manage offline message storage and delivery
 
 #### Storage Layer
+
 - **Message Store (NoSQL)**: High-throughput message persistence (Cassandra/HBase)
 - **User Store (SQL)**: User profiles, authentication, relationships (PostgreSQL)
 - **Presence Store (In-Memory)**: Fast online status lookups (Redis)
 - **Cache Layer**: Hot data caching, session storage (Redis Cluster)
 
 #### Infrastructure Layer
+
 - **Service Discovery**: Chat server registration and discovery (Zookeeper/Consul)
 - **Monitoring**: Metrics collection and alerting (Prometheus/Grafana)
 - **Logging**: Centralized log aggregation (ELK stack)
@@ -411,7 +462,8 @@ The connection layer is responsible for managing WebSocket connections and handl
 
 #### 5.1.1 Connection Management
 
-**WebSocket Connection Lifecycle**:
+**WebSocket Connection Lifecycle**
+
 1. **Connection Establishment**:
    - Client initiates WebSocket handshake (HTTP Upgrade)
    - Server validates authentication token (JWT)
@@ -428,7 +480,8 @@ The connection layer is responsible for managing WebSocket connections and handl
    - Cleanup of session resources
    - Unsubscribe from message queues
 
-**Key Design Decisions**:
+**Key Design Decisions**
+
 - **Single connection per device**: Each device maintains one WebSocket connection
 - **Connection pooling**: Server maintains connection pool with configurable limits
 - **Resource limits**: Max 10K connections per chat server instance
@@ -437,6 +490,7 @@ The connection layer is responsible for managing WebSocket connections and handl
 #### 5.1.2 Protocol Design
 
 **Message Frame Structure** (WebSocket Binary Frame):
+
 ```protobuf
 message Frame {
   FrameType type = 1;           // Message type
@@ -784,58 +838,38 @@ PUBLISH presence:updates '{"user_id": "123", "status": "online", "timestamp": 12
 
 ### 6.1 User Authentication and Connection Flow
 
-```
-┌────────┐                ┌─────────────┐         ┌────────────┐         ┌─────────────┐
-│ Client │                │Load Balancer│         │ API Server │         │  Consul     │
-└───┬────┘                └──────┬──────┘         └─────┬──────┘         └──────┬──────┘
-    │                            │                      │                        │
-    │ 1. POST /api/login         │                      │                        │
-    │ {username, password}       │                      │                        │
-    ├───────────────────────────>│                      │                        │
-    │                            │ 2. Route to API      │                        │
-    │                            ├─────────────────────>│                        │
-    │                            │                      │ 3. Validate credentials│
-    │                            │                      │    (PostgreSQL)        │
-    │                            │                      │                        │
-    │                            │                      │ 4. Generate JWT token  │
-    │                            │                      │                        │
-    │                            │ 5. Return token      │                        │
-    │                            │<─────────────────────┤                        │
-    │ 6. {access_token, ...}     │                      │                        │
-    │<───────────────────────────┤                      │                        │
-    │                            │                      │                        │
-    │ 7. POST /api/connect       │                      │                        │
-    │ {token}                    │                      │                        │
-    ├───────────────────────────>│                      │                        │
-    │                            ├─────────────────────>│                        │
-    │                            │                      │ 8. Query available     │
-    │                            │                      │    chat servers        │
-    │                            │                      ├───────────────────────>│
-    │                            │                      │                        │
-    │                            │                      │ 9. Return best server  │
-    │                            │                      │<───────────────────────┤
-    │                            │ 10. {ws_url, token}  │                        │
-    │                            │<─────────────────────┤                        │
-    │ 11. {ws_url, token}        │                      │                        │
-    │<───────────────────────────┤                      │                        │
-    │                            │                      │                        │
-    │                                                                             │
-    │                        ┌────────────────┐                                  │
-    │ 12. WS Connect         │  Chat Server   │                                  │
-    │ ws://.../chat?token=...│                │                                  │
-    ├───────────────────────>│                │                                  │
-    │                        │ 13. Validate   │                                  │
-    │                        │     token      │                                  │
-    │                        │                │                                  │
-    │                        │ 14. Register   │                                  │
-    │                        │     session    │                                  │
-    │                        │     (Redis)    │                                  │
-    │ 15. WS Connected       │                │                                  │
-    │<───────────────────────┤                │                                  │
-    │                        │                │                                  │
-    │ 16. Start heartbeat    │                │                                  │
-    │<──────────────────────>│                │                                  │
-    └────────────────────────┴────────────────┴──────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant LB as Load Balancer
+    participant API as API Server
+    participant Consul as Consul
+    participant CS as Chat Server
+    participant R as Redis
+    
+    C->>LB: 1. POST /api/login {username, password}
+    LB->>API: 2. Route to API
+    API->>API: 3. Validate credentials (PostgreSQL)
+    API->>API: 4. Generate JWT token
+    API->>LB: 5. Return token
+    LB->>C: 6. {access_token, ...}
+    
+    C->>LB: 7. POST /api/connect {token}
+    LB->>API: Route request
+    API->>Consul: 8. Query available chat servers
+    Consul->>API: 9. Return best server
+    API->>LB: 10. {ws_url, token}
+    LB->>C: 11. {ws_url, token}
+    
+    C->>CS: 12. WS Connect ws://.../chat?token=...
+    CS->>CS: 13. Validate token
+    CS->>R: 14. Register session (Redis)
+    CS->>C: 15. WS Connected
+    
+    loop Heartbeat
+        C->>CS: Heartbeat
+        CS->>C: Heartbeat response
+    end
 ```
 
 **Steps Explained**:
@@ -846,43 +880,37 @@ PUBLISH presence:updates '{"user_id": "123", "status": "online", "timestamp": 12
 
 ### 6.2 One-on-One Message Send Flow
 
+```mermaid
+sequenceDiagram
+    participant A as Client A
+    participant CS1 as Chat Server 1
+    participant ID as ID Generator
+    participant K as Kafka
+    participant CS2 as Chat Server 2
+    participant B as Client B
+    participant C as Cassandra
+    
+    A->>CS1: 1. Send message {to: B, text}
+    CS1->>ID: 2. Request msg_id
+    ID->>CS1: 3. Return msg_id
+    CS1->>K: 4. Enqueue to User B's queue
+    CS1->>A: 5. ACK (sent)
+    
+    par Async Persistence
+        CS1->>C: 6. Persist to Cassandra (background)
+    end
+    
+    CS1->>CS1: 7. Check if User B is online
+    alt User B is online (on Server 2)
+        CS1->>CS2: 8. Forward message
+        CS2->>B: 9. Deliver via WebSocket
+        B->>CS2: 10. ACK (delivered)
+        CS2->>CS1: Forward ACK
+        CS1->>A: 11. Delivery ACK
+    else User B is offline
+        Note over K: Message queued for offline delivery
+    end
 ```
-┌─────────┐      ┌──────────────┐      ┌────────────┐      ┌──────────┐      ┌─────────┐
-│Client A │      │Chat Server 1 │      │ID Generator│      │  Kafka   │      │Client B │
-└────┬────┘      └──────┬───────┘      └─────┬──────┘      └────┬─────┘      └────┬────┘
-     │                  │                     │                   │                 │
-     │ 1. Send message  │                     │                   │                 │
-     │ {to: B, text}    │                     │                   │                 │
-     ├─────────────────>│                     │                   │                 │
-     │                  │ 2. Request msg_id   │                   │                 │
-     │                  ├────────────────────>│                   │                 │
-     │                  │                     │                   │                 │
-     │                  │ 3. Return msg_id    │                   │                 │
-     │                  │<────────────────────┤                   │                 │
-     │                  │                     │                   │                 │
-     │                  │ 4. Enqueue to User B's queue            │                 │
-     │                  ├────────────────────────────────────────>│                 │
-     │                  │                     │                   │                 │
-     │ 5. ACK (sent)    │                     │                   │                 │
-     │<─────────────────┤                     │                   │                 │
-     │                  │                     │                   │                 │
-     │                  │        6. Async persist to Cassandra    │                 │
-     │                  │           (background worker)           │                 │
-     │                  │                     │                   │                 │
-     │                  │                     │                   │ 7. User B online?
-     │                  │                     │                   │    Check session
-     │                  │                     │                   │                 │
-     │                  │                     │       ┌───────────┴────────┐       │
-     │                  │                     │       │  Chat Server 2     │       │
-     │                  │                     │       │  (B's server)      │       │
-     │                  │                     │  8. Forward message        │       │
-     │                  │                     │<──────┤                    │       │
-     │                  │                     │       │ 9. Deliver via WS  │       │
-     │                  │                     │       ├───────────────────────────>│
-     │                  │                     │       │                    │       │
-     │                  │                     │       │ 10. ACK (delivered)│       │
-     │                  │                     │       │<───────────────────────────┤
-     │ 11. Delivery ACK │                     │       │                    │       │
      │<─────────────────┴─────────────────────┴───────┴────────────────────┘       │
      └───────────────────────────────────────────────────────────────────────────  │
 ```
@@ -937,46 +965,25 @@ PUBLISH presence:updates '{"user_id": "123", "status": "online", "timestamp": 12
 
 ### 6.4 Offline Message Sync Flow
 
-```
-┌─────────┐      ┌──────────────┐      ┌────────────┐      ┌──────────────┐
-│Client B │      │Chat Server   │      │   Redis    │      │  Cassandra   │
-│(Offline)│      │              │      │  (Session) │      │  (Messages)  │
-└────┬────┘      └──────┬───────┘      └─────┬──────┘      └──────┬───────┘
-     │                  │                     │                    │
-     │ (Offline period) │                     │                    │
-     │ Messages queued  │                     │                    │
-     │ in Kafka for B   │                     │                    │
-     │                  │                     │                    │
-     │ 1. User comes    │                     │                    │
-     │    online        │                     │                    │
-     │ WS Connect       │                     │                    │
-     ├─────────────────>│                     │                    │
-     │                  │ 2. Register session │                    │
-     │                  ├────────────────────>│                    │
-     │                  │                     │                    │
-     │                  │ 3. Query last sync  │                    │
-     │                  │    message_id       │                    │
-     │                  ├────────────────────────────────────────>│
-     │                  │                     │                    │
-     │                  │ 4. Return: last_msg_id = X              │
-     │                  │<────────────────────────────────────────┤
-     │                  │                     │                    │
-     │                  │ 5. Fetch messages   │                    │
-     │                  │    WHERE msg_id > X │                    │
-     │                  ├────────────────────────────────────────>│
-     │                  │                     │                    │
-     │                  │ 6. Return messages  │                    │
-     │                  │<────────────────────────────────────────┤
-     │                  │                     │                    │
-     │ 7. Batch deliver │                     │                    │
-     │    missed msgs   │                     │                    │
-     │<─────────────────┤                     │                    │
-     │                  │                     │                    │
-     │ 8. ACK each msg  │                     │                    │
-     ├─────────────────>│                     │                    │
-     │                  │ 9. Update last_sync │                    │
-     │                  ├────────────────────>│                    │
-     └──────────────────┴─────────────────────┴────────────────────┘
+```mermaid
+sequenceDiagram
+    participant B as Client B (Offline)
+    participant CS as Chat Server
+    participant R as Redis (Session)
+    participant K as Kafka
+    participant C as Cassandra
+    
+    Note over B,C: Offline period - Messages queued in Kafka
+    
+    B->>CS: 1. User comes online (WS Connect)
+    CS->>R: 2. Register session
+    CS->>C: 3. Query last sync message_id
+    C->>CS: 4. Return: last_msg_id = X
+    CS->>C: 5. Fetch messages WHERE msg_id > X
+    C->>CS: 6. Return messages
+    CS->>B: 7. Batch deliver missed messages
+    B->>CS: 8. ACK each message
+    CS->>C: 9. Update last_sync
 ```
 
 **Sync Strategy**:
@@ -2033,6 +2040,7 @@ wss://chat.uim.example.com/v1/chat?token=<jwt_token>
 #### 11.3.2 Sensitive Data Handling
 
 **Password Storage**:
+
 ```go
 func HashPassword(password string) (string, error) {
     // Use bcrypt with cost factor 12
@@ -2754,6 +2762,7 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 **Implementation**: Signal Protocol
 
 **Benefits**:
+
 - Military-grade security
 - Zero-knowledge server (server can't read messages)
 - Forward secrecy
@@ -2765,7 +2774,8 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 #### 16.1.2 Rich Media Support
 
-**Media Types**:
+**Media Types**
+
 - Images (JPEG, PNG, GIF)
 - Videos (MP4, MOV)
 - Audio files (MP3, AAC)
@@ -2887,7 +2897,7 @@ Operational procedures for common scenarios: `./docs/runbooks/`
 
 | Version | Date       | Author             | Changes                               |
 | ------- | ---------- | ------------------ | ------------------------------------- |
-| 1.0     | 2026-01-05 | System Design Team | Initial comprehensive design document |
+| 1.0     | 2025-02-10 | System Design Team | Initial comprehensive design document |
 
 ---
 
