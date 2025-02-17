@@ -2,7 +2,7 @@
 
 **Document Version:** 1.0  
 **Last Updated:** `2025-02-10`  
-**Author:** System Design Team  
+**Author:** `convexwf@gmail.com`  
 **Status:** Design Review  
 **Document Type:** Extended/Ultimate Implementation Plan
 
@@ -11,6 +11,7 @@
 ## ⚠️ Document Purpose & Scope
 
 **This document describes an enterprise-grade, large-scale IM system design** suitable for:
+
 - **Production systems** handling 50M+ DAU
 - **Multi-region deployments** with high availability requirements
 - **Interview preparation** and system design discussions

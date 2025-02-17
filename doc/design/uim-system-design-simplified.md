@@ -1,10 +1,8 @@
 # UIM System Design (Simplified Version)
 
-**Document Version:** 1.0  
-**Last Updated:** `2025-02-10`  
-**Author:** `convexwf@gmail.com`
-**Status:** Design Review  
-**Document Type:** Simplified Implementation Plan for Personal Projects
+| Version | Date       | Author               | Changes                            |
+| ------- | ---------- | -------------------- | ---------------------------------- |
+| 1.0     | 2025-02-10 | `convexwf@gmail.com` | Initial simplified design document |
 
 ---
 
@@ -368,12 +366,12 @@ graph TB
 
 #### Storage Layer
 
-- **PostgreSQL**: 
+- **PostgreSQL**:
   - User profiles, authentication, relationships
   - Conversations and participants
   - Messages (all messages stored here)
   
-- **Redis**: 
+- **Redis**
   - Session storage
   - Presence cache
   - Offline message queues
@@ -1772,16 +1770,3 @@ Complete schema DDL available in repository: `./db/migrations/`
 - Nginx configuration
 - SSL certificate setup
 - Monitoring setup
-
----
-
-**Document Change Log**:
-
-| Version | Date       | Author             | Changes                            |
-| ------- | ---------- | ------------------ | ---------------------------------- |
-| 1.0     | 2025-02-10 | System Design Team | Initial simplified design document |
-
----
-
-*End of Document*
-
