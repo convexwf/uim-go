@@ -1,19 +1,25 @@
-# UIM System Development Roadmap
+# UIM System Development Roadmap - v1.0
+
+**Version**: 1.0 (Monolithic Architecture)
 
 **Document Version:** 1.0  
 **Last Updated:** January 5, 2026  
 **Author:** `convexwf@gmail.com`  
-**Based on:** [Simplified System Design](./uim-system-design-simplified.md)
+**Based on:** [System Design v1.0](./uim-system-design-v1.0.md)
 
 ---
 
 ## Overview
 
-This roadmap outlines the development plan for the UIM system based on the simplified design. The plan is divided into 3 phases over 12 weeks, focusing on delivering a production-ready MVP.
+This roadmap outlines the development plan for **UIM System v1.0**, which uses a **monolithic architecture**. The plan is divided into 3 phases over 12 weeks, focusing on delivering a production-ready MVP.
 
-**Timeline**: 12 weeks (3 months)  
-**Target**: MVP with one-on-one chat, group chat, and basic features  
-**Scale**: Support 1K-10K DAU
+**Version 1.0 Characteristics**:
+- **Architecture**: Monolithic (single service)
+- **Timeline**: 12 weeks (3 months)
+- **Target**: MVP with one-on-one chat, group chat, and basic features
+- **Scale**: Support 1K-10K DAU
+
+**Note**: This roadmap covers v1.0 only. For future migration options, see [../design-document-guide.md](../design-document-guide.md)
 
 ---
 
@@ -126,7 +132,8 @@ gantt
 - [ ] Implement graceful connection closure
 - [ ] Add connection error handling and reconnection logic
 
-**Message Handling**:
+**Message Handling**
+
 - [ ] Design message protocol (JSON over WebSocket)
 - [ ] Implement message send handler
 - [ ] Implement message receive handler
@@ -134,7 +141,8 @@ gantt
 - [ ] Implement rate limiting (50 messages/minute per user)
 - [ ] Add message delivery acknowledgments (sent, delivered)
 
-**Message Persistence**:
+**Message Persistence**
+
 - [ ] Implement message storage to PostgreSQL
 - [ ] Add message retrieval API (`GET /api/conversations/:id/messages`)
 - [ ] Implement message pagination (cursor-based)
@@ -555,28 +563,22 @@ gantt
 
 ---
 
-## Next Steps After MVP
+## Future Versions
 
-### Phase 4: Advanced Features (Future)
+**When v1.0 Limits Are Reached**:
+- DAU > 10K
+- Performance bottlenecks identified
+- Need for independent service scaling
 
-- Rich media support (images, videos, files)
-- Voice messages
-- Message reactions
-- Message editing and deletion
-- Advanced search (full-text across all conversations)
-
-### Phase 5: Scale & Migration (Future)
-
-- Consider migration to extended design
-- Multi-region deployment
-- Microservices split
-- Advanced monitoring (Prometheus, Grafana)
-- Performance optimization for 100K+ DAU
+**Migration Options**: See [../design-document-guide.md](../design-document-guide.md) for:
+- Migration to microservices architecture (see [../design-document-guide.md](../design-document-guide.md) for v2.0 details)
+- Migration to extended design
+- Migration strategies and deployment guides
 
 ---
 
 ## References
 
-- **Simplified System Design**: [uim-system-design-simplified.md](./uim-system-design-simplified.md)
-- **Design Guide**: [design-document-guide.md](./design-document-guide.md)
-- **Extended System Design**: [uim-system-design.md](./uim-system-design.md)
+- **System Design v1.0**: [uim-system-design-v1.0.md](./uim-system-design-v1.0.md)
+- **Design Guide**: [../design-document-guide.md](../design-document-guide.md)
+- **Extended System Design**: [../uim-system-design.md](../uim-system-design.md)

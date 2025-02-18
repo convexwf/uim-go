@@ -17,7 +17,7 @@
 - **Interview preparation** and system design discussions
 - **Future scaling** when the project grows beyond initial MVP
 
-**For current development**, please refer to the **simplified version**: [`uim-system-design-simplified.md`](./uim-system-design-simplified.md)
+**For current development**, please refer to **v1.0**: [`v1.0/uim-system-design-v1.0.md`](./v1.0/uim-system-design-v1.0.md)
 
 **Key Characteristics of This Design:**
 - Microservices architecture with service separation

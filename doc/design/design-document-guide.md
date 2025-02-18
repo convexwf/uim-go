@@ -1,4 +1,4 @@
-# UIM System Design: Simplified vs. Extended Version Guide
+# UIM System Design: v1.0 vs. Extended Version Guide
 
 **Document Version:** 1.0  
 **Last Updated:** January 5, 2026  
@@ -10,30 +10,31 @@
 
 This document explains the rationale behind having two design documents for the UIM system:
 
-- **Simplified Version** (`uim-system-design-simplified.md`): For MVP and personal projects
+- **Version 1.0** (`v1.0/uim-system-design-v1.0.md`): Monolithic architecture for MVP and personal projects
 - **Extended Version** (`uim-system-design.md`): For enterprise-scale systems and future expansion
 
 This guide helps you understand:
 
-- Why we need a simplified design approach
+- Why we need v1.0 (monolithic) design approach
 - When to use each version
-- How to migrate from simplified to extended design
+- How to migrate from v1.0 to extended design
 - Migration strategies and considerations
 
 ---
 
 ## Table of Contents
 
-1. [Why Simplified Design?](#1-why-simplified-design)
+1. [Why v1.0 Design?](#1-why-v10-design)
 2. [When to Use Each Version](#2-when-to-use-each-version)
-3. [Migration Path: Simplified to Extended](#3-migration-path-simplified-to-extended)
+3. [Migration Path: v1.0 to Extended](#3-migration-path-v10-to-extended)
 4. [Migration Strategies](#4-migration-strategies)
 5. [Decision Framework](#5-decision-framework)
 6. [Cost-Benefit Analysis](#6-cost-benefit-analysis)
+7. [Version 2.0: Microservices Architecture](#9-version-20-microservices-architecture)
 
 ---
 
-## 1. Why Simplified Design?
+## 1. Why v1.0 Design?
 
 ### 1.1 The Problem with Premature Optimization
 
@@ -59,7 +60,7 @@ Starting with an enterprise-scale design (Cassandra, Kafka, microservices) for a
 - Increased complexity without clear benefits
 - Higher chance of project abandonment
 
-### 1.2 Benefits of Simplified Design
+### 1.2 Benefits of v1.0 Design
 
 **Faster Time to Market**:
 - Get MVP running in 10-12 weeks vs. 32+ weeks
@@ -104,7 +105,7 @@ Build for your current scale, optimize when you need to.
 
 ## 2. When to Use Each Version
 
-### 2.1 Use Simplified Version When:
+### 2.1 Use v1.0 When:
 
 ✅ **Starting a new project**
 
@@ -160,20 +161,21 @@ Build for your current scale, optimize when you need to.
 
 ### 2.3 Decision Matrix
 
-| Factor                     | Simplified   | Extended        |
-| -------------------------- | ------------ | --------------- |
-| **DAU**                    | < 10K        | > 100K          |
-| **Concurrent Connections** | < 1K         | > 10K           |
-| **Message Volume/Day**     | < 1M         | > 10M           |
-| **Budget/Month**           | < $500       | > $10K          |
-| **Team Size**              | 1-3          | 10+             |
-| **Time to Market**         | Fast (weeks) | Slower (months) |
-| **Complexity**             | Low          | High            |
-| **Learning Curve**         | Gentle       | Steep           |
+| Factor                     | v1.0 (Monolithic) | Extended (Microservices) |
+| -------------------------- | ----------------- | ------------------------ |
+| **DAU**                    | < 10K             | > 100K                   |
+| **Concurrent Connections** | < 1K              | > 10K                    |
+| **Message Volume/Day**     | < 1M              | > 10M                    |
+| **Budget/Month**           | < $500            | > $10K                   |
+| **Team Size**              | 1-3               | 10+                      |
+| **Time to Market**         | Fast (weeks)      | Slower (months)          |
+| **Complexity**             | Low               | High                     |
+| **Learning Curve**         | Gentle            | Steep                    |
+| **Architecture**           | Monolithic        | Microservices            |
 
 ---
 
-## 3. Migration Path: Simplified to Extended
+## 3. Migration Path: v1.0 to Extended
 
 ### 3.1 Migration Triggers
 
@@ -387,7 +389,7 @@ Week 7-8:  Decommission old service
 ```mermaid
 graph TD
     A[Current System] --> B{DAU > 10K?}
-    B -->|No| C[Stay with Simplified]
+    B -->|No| C[Stay with v1.0]
     B -->|Yes| D{Performance Issues?}
     D -->|No| E{Business Requirements?}
     D -->|Yes| F[Consider Migration]
@@ -441,7 +443,7 @@ Migration is expensive and risky. Only migrate when you have clear reasons.
 
 ## 6. Cost-Benefit Analysis
 
-### 6.1 Simplified Design Costs
+### 6.1 v1.0 Design Costs
 
 **Monthly Costs**:
 - Server: $20-50
@@ -486,7 +488,7 @@ Migration is expensive and risky. Only migrate when you have clear reasons.
 
 ### 6.3 ROI Calculation
 
-**Simplified Design ROI**:
+**v1.0 Design ROI**:
 ```
 Development Time Saved: 20 weeks
 Cost Saved: $11,400-21,900/month
@@ -519,7 +521,7 @@ ROI: High only at scale
 | **Concurrent Users** | > 10,000         |
 
 **Rule of Thumb**: 
-If you're not hitting these numbers, stick with simplified design.
+If you're not hitting these numbers, stick with v1.0 (monolithic).
 
 ---
 
@@ -530,7 +532,7 @@ If you're not hitting these numbers, stick with simplified design.
 **Principle**: 
 > "Make it work, make it right, make it fast" - Kent Beck
 
-1. **Make it work**: Build MVP with simplified design
+1. **Make it work**: Build MVP with v1.0 (monolithic) design
 2. **Make it right**: Refactor and optimize as needed
 3. **Make it fast**: Scale only when performance requires it
 
@@ -580,7 +582,7 @@ If you're not hitting these numbers, stick with simplified design.
 
 ### Key Takeaways
 
-1. **Start with Simplified Design**: 
+1. **Start with v1.0 (Monolithic)**: 
    - Faster development
    - Lower costs
    - Focus on features
@@ -599,17 +601,17 @@ If you're not hitting these numbers, stick with simplified design.
    - Have rollback plans
 
 4. **Both Designs Have Value**:
-   - Simplified: For MVP and learning
+   - v1.0 (Monolithic): For MVP and learning
    - Extended: For scale and interviews
 
 ### Final Recommendation
 
 **For Your Project**:
-- ✅ Start with **Simplified Design**
+- ✅ Start with **v1.0 (Monolithic)**
 - ✅ Build MVP in 10-12 weeks
 - ✅ Validate product-market fit
 - ✅ Monitor metrics closely
-- ✅ Migrate only when needed
+- ✅ Migrate to extended design only when needed
 
 **Remember**: 
 > "The best code is the code you don't have to write" - Jeff Atwood
@@ -618,9 +620,216 @@ Don't build infrastructure you don't need. Start simple, scale smart.
 
 ---
 
+## 9. Version 2.0: Microservices Architecture
+
+### 9.1 When to Consider v2.0
+
+**Migration Triggers**:
+- DAU > 10,000
+- Performance bottlenecks identified
+- Need for independent service scaling
+- Team size > 5 engineers
+- Budget for additional infrastructure
+
+### 9.2 v2.0 Architecture Overview
+
+**v2.0 will introduce microservices architecture** by splitting the monolithic application into separate services:
+
+- **API Server**: Stateless HTTP API service
+- **Chat Server**: Stateful WebSocket service for real-time messaging
+- **Presence Server**: Online status and presence management
+
+### 9.3 v2.0 Microservices Architecture
+
+```mermaid
+graph TB
+    subgraph DockerCompose["Docker Compose - Microservices"]
+        subgraph APIService["api-server"]
+            API[API Server<br/>:8080]
+        end
+        
+        subgraph ChatService["chat-server"]
+            Chat[Chat Server<br/>:8081]
+        end
+        
+        subgraph PresenceService["presence-server"]
+            Presence[Presence Server<br/>:8082]
+        end
+        
+        subgraph Database["PostgreSQL"]
+            PG[(PostgreSQL<br/>:5432)]
+        end
+        
+        subgraph Cache["Redis"]
+            Redis[(Redis<br/>:6379)]
+        end
+        
+        subgraph Gateway["Nginx"]
+            Nginx[Nginx<br/>:80, :443]
+        end
+    end
+    
+    Client[Client] --> Nginx
+    Nginx --> API
+    Nginx --> Chat
+    Nginx --> Presence
+    API --> PG
+    API --> Redis
+    Chat --> PG
+    Chat --> Redis
+    Presence --> Redis
+```
+
+### 9.4 v2.0 Service Communication
+
+**Service-to-Service Communication**:
+- **HTTP/gRPC**: For synchronous communication between services
+- **Redis Pub/Sub**: For asynchronous events (presence updates, notifications)
+- **Direct Database Access**: Each service can access PostgreSQL and Redis
+
+**No Message Queue Required Initially**:
+- v2.0 can start with HTTP/gRPC + Redis Pub/Sub
+- Kafka only needed if message volume > 10M/day or need advanced features
+
+### 9.5 v2.0 Docker Compose Configuration
+
+**File: `docker-compose.v2.yml`** (for v2.0)
+
+```yaml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - uim-network
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - uim-network
+    restart: always
+
+  api-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      APP_PORT: 8080
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - uim-network
+    restart: always
+
+  chat-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.chat
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      WS_PORT: 8081
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - uim-network
+    restart: always
+
+  presence-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.presence
+    environment:
+      REDIS_HOST: redis
+      APP_PORT: 8082
+    depends_on:
+      - redis
+    networks:
+      - uim-network
+    restart: always
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.microservices.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api-server
+      - chat-server
+      - presence-server
+    networks:
+      - uim-network
+    restart: always
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  uim-network:
+    driver: bridge
+```
+
+### 9.6 v2.0 Migration Path
+
+**Migration Strategy from v1.0 to v2.0**:
+
+1. **Phase 1**: Deploy v2.0 microservices alongside v1.0 (dual-write)
+2. **Phase 2**: Gradually route traffic to v2.0 services
+3. **Phase 3**: Monitor and verify v2.0 performance
+4. **Phase 4**: Complete migration, remove v1.0 monolithic service
+
+**Migration Timeline**: 6-8 weeks
+
+**Key Considerations**:
+- Service discovery: Use Docker Compose service names (simple) or Consul (advanced)
+- Message queue: Start with Redis Pub/Sub, migrate to Kafka if needed
+- Database: Shared PostgreSQL initially, can shard later
+- Monitoring: Add distributed tracing and service mesh if needed
+
+### 9.7 v2.0 vs. Extended Design
+
+**v2.0 (Microservices)**:
+- 3 services (API, Chat, Presence)
+- Docker Compose deployment
+- Redis Pub/Sub for messaging
+- PostgreSQL + Redis
+- Suitable for 10K-100K DAU
+
+**Extended Design**:
+- 5+ services
+- Kubernetes deployment
+- Kafka for messaging
+- Cassandra + PostgreSQL + Redis
+- Suitable for 100K+ DAU
+
+**Decision**: v2.0 is a middle ground between v1.0 and extended design.
+
+---
+
 ## References
 
-1. **Simplified Design Document**: [`uim-system-design-simplified.md`](./uim-system-design-simplified.md)
+1. **System Design v1.0**: [`v1.0/uim-system-design-v1.0.md`](./v1.0/uim-system-design-v1.0.md)
 2. **Extended Design Document**: [`uim-system-design.md`](./uim-system-design.md)
 3. **Martin Fowler - Strangler Fig Pattern**: https://martinfowler.com/bliki/StranglerFigApplication.html
 4. **Sam Newman - Building Microservices**: https://www.oreilly.com/library/view/building-microservices/9781491950340/

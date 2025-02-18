@@ -1,24 +1,26 @@
-# UIM System Design (Simplified Version)
+# UIM System Design - v1.0
 
-| Version | Date       | Author               | Changes                            |
-| ------- | ---------- | -------------------- | ---------------------------------- |
-| 1.0     | 2025-02-10 | `convexwf@gmail.com` | Initial simplified design document |
+**Version**: 1.0 (Monolithic Architecture)
+
+| Version | Date       | Author               | Changes                                         |
+| ------- | ---------- | -------------------- | ----------------------------------------------- |
+| 1.0     | 2025-02-10 | `convexwf@gmail.com` | Initial v1.0 design document (Monolithic) |
 
 ---
 
 ## Document Purpose & Scope
 
-This document describes a simplified, practical IM system design suitable for:
+This document describes **Version 1.0** of the UIM system design, which uses a **monolithic architecture**. This version is suitable for:
 
 - **Personal projects** and learning purposes
 - **MVP development** with 1K-10K DAU target
-- **Single-server deployment** initially
+- **Single-server deployment**
 - **Rapid iteration** (10-12 weeks development timeline)
 
-**Key Characteristics of This Design**
+**Version 1.0 Key Characteristics**
 
-- Monolithic architecture (initially, can be split later)
-- Simplified tech stack (PostgreSQL + Redis instead of Cassandra + Kafka)
+- **Monolithic architecture** (single Go service application)
+- **Tech stack**: PostgreSQL + Redis (simpler than Cassandra + Kafka)
 - Single-region deployment
 - Basic observability
 - Focus on core functionality first
@@ -30,7 +32,7 @@ This document describes a simplified, practical IM system design suitable for:
 - Building MVP for personal use
 - When DAU < 10K
 
-**For enterprise-scale design**, please refer to: [`uim-system-design.md`](./uim-system-design.md)
+**For enterprise-scale design**, please refer to: [`../uim-system-design.md`](../uim-system-design.md)
 
 ---
 
@@ -95,7 +97,7 @@ This project aims to build a practical instant messaging system for personal use
 
 #### Scalability Goals
 
-- **Horizontal scaling path**: Architecture allows future splitting into microservices
+- **Horizontal scaling**: Architecture allows future expansion (see [../design-document-guide.md](../design-document-guide.md) for migration path)
 - **Database scalability**: PostgreSQL with proper indexing can handle initial load
 - **Storage scalability**: Efficiently store and retrieve millions of messages
 - **Connection scalability**: Single server can handle 1K+ concurrent connections
@@ -112,7 +114,7 @@ The following are explicitly **out of scope** for the initial release:
 - **Bot integration**: Third-party bot framework
 - **Advanced search**: Full-text search across all messages
 - **Multi-region deployment**: Single-region only initially
-- **Microservices architecture**: Monolithic initially, can split later
+- **Architecture**: Monolithic (single service)
 
 ---
 
@@ -198,7 +200,7 @@ The following are explicitly **out of scope** for the initial release:
 
 #### Scalability Requirements
 
-- **Horizontal Scaling Path**: Architecture allows future microservices split
+- **Future expansion**: See [../design-document-guide.md](../design-document-guide.md) for migration options
 - **Database Scaling**: PostgreSQL with read replicas if needed
 - **Cache Layer**: Redis for hot data and session storage
 
@@ -241,7 +243,7 @@ The following are explicitly **out of scope** for the initial release:
 
 ### 4.1 Architecture Overview
 
-The UIM system follows a **simplified monolithic architecture** initially, with clear separation of concerns that allows future microservices split.
+**Version 1.0**: The UIM system uses a **monolithic architecture** - a single Go application that handles all functionality (API, WebSocket, Business Logic).
 
 **Architecture Style**
 
@@ -262,7 +264,7 @@ The UIM system follows a **simplified monolithic architecture** initially, with 
 **Key Architectural Principles**
 
 - **Monolithic initially**: Simpler deployment and debugging
-- **Modular design**: Easy to split into microservices later
+- **Modular design**: Code organized in modules, but runs as single service
 - **Asynchronous processing**: Decouple message persistence from delivery using Redis
 - **Single database**: PostgreSQL for all data, Redis for caching and queues
 - **Stateless API**: JWT-based authentication allows horizontal scaling later
@@ -397,7 +399,7 @@ graph TB
 - **Cassandra**: Too complex for initial scale, PostgreSQL can handle millions of messages
 - **Kafka**: Overkill for initial requirements, Redis Pub/Sub sufficient
 - **Kubernetes**: Not needed for single-server deployment, Docker Compose enough
-- **Microservices**: Adds complexity, start monolithic and split when needed
+- **Monolithic**: Single service application
 
 ---
 
@@ -1169,54 +1171,58 @@ func handleMessage(msg Message) {
 
 ### 9.1 Horizontal Scaling Path
 
-**Current State**: Monolithic application
+**Version 1.0 (Current)**: Monolithic application - single service
 
-**Future Scaling Options**
+**Version 1.0 Scaling Options** (within monolithic):
 
-1. **Split API and Chat Server**:
-   - API Server: Stateless, easy to scale
-   - Chat Server: Stateful, requires sticky sessions
-
+1. **Vertical Scaling**: Increase server resources (CPU, RAM)
 2. **Database Scaling**:
    - Read replicas for read-heavy operations
    - Connection pooling
    - Query optimization
-
 3. **Cache Scaling**:
    - Redis Cluster when single instance insufficient
    - Cache warming strategies
 
+**Note**: For migration to microservices architecture, see [../design-document-guide.md](../design-document-guide.md)
+
 ### 9.2 Performance Optimization
 
-**Database Optimization**:
+**Database Optimization**
+
 - Proper indexing (already covered)
 - Connection pooling
 - Query optimization
 - Batch operations where possible
 
-**Caching Strategy**:
+**Caching Strategy**
+
 - Cache frequently accessed data (user profiles, conversation metadata)
 - Cache presence information
 - Cache recent messages (last 50 per conversation)
 
-**Connection Optimization**:
+**Connection Optimization**
+
 - WebSocket connection pooling
 - Efficient message batching
 - Compression for large messages
 
 ### 9.3 When to Scale
 
-**Indicators for Scaling**:
+**Indicators for Scaling**
+
 - Database CPU > 70% consistently
 - Response time P95 > 500ms
 - Connection count approaching server limits
 - Message queue lag > 1 second
 
-**Scaling Actions**:
+**v1.0 Scaling Actions** (monolithic):
+
 1. **Vertical scaling**: Increase server resources first
 2. **Read replicas**: Add PostgreSQL read replicas
-3. **Service split**: Split into microservices
-4. **Database sharding**: When single DB insufficient
+3. **Database sharding**: When single DB insufficient (advanced)
+
+**Note**: When v1.0 limits are reached, consider migration options. See [../design-document-guide.md](../design-document-guide.md) for migration path.
 
 ---
 
@@ -1224,21 +1230,24 @@ func handleMessage(msg Message) {
 
 ### 10.1 Fault Tolerance
 
-**Single Server Failure**:
+**Single Server Failure**
+
 - **Impact**: Service unavailable
 - **Mitigation**: 
   - Regular backups
   - Quick recovery procedures
   - Health monitoring
 
-**Database Failure**:
+**Database Failure**
+
 - **Impact**: Cannot persist new messages
 - **Mitigation**:
   - Messages queued in Redis
   - Automatic retry when DB recovers
   - Database replication (future)
 
-**Redis Failure**:
+**Redis Failure**
+
 - **Impact**: Loss of cache and offline queues
 - **Mitigation**:
   - Fallback to direct database access
@@ -1247,19 +1256,22 @@ func handleMessage(msg Message) {
 
 ### 10.2 Backup Strategy
 
-**Database Backups**:
+**Database Backups**
+
 - **Frequency**: Daily full backup
 - **Retention**: 7 days
 - **Method**: PostgreSQL pg_dump
 
-**Redis Backups**:
+**Redis Backups**
+
 - **Frequency**: Every 6 hours
 - **Retention**: 24 hours
 - **Method**: Redis RDB snapshots
 
 ### 10.3 Disaster Recovery
 
-**Recovery Procedures**:
+**Recovery Procedures**
+
 1. **Database restore**: From latest backup
 2. **Application restart**: Automatic on server restart
 3. **Data validation**: Verify message integrity after restore
@@ -1273,25 +1285,29 @@ func handleMessage(msg Message) {
 
 ### 11.1 Authentication
 
-**JWT Token Authentication**:
+**JWT Token Authentication**
+
 - **Access token**: 15-minute expiration
 - **Refresh token**: 7-day expiration
 - **Token storage**: HTTP-only cookies (web) or secure storage (mobile)
 
-**Password Security**:
+**Password Security**
+
 - **Hashing**: bcrypt with cost factor 10
 - **Requirements**: Minimum 8 characters, complexity requirements
 
 ### 11.2 Authorization
 
-**Access Control**:
+**Access Control**
+
 - Users can only access conversations they're part of
 - Group admins can manage group membership
 - Authorization checks on every request
 
 ### 11.3 Transport Security
 
-**TLS/SSL**:
+**TLS/SSL**
+
 - **Protocol**: TLS 1.2+ required
 - **Certificates**: Let's Encrypt (free) or commercial
 - **HTTPS**: All HTTP traffic encrypted
@@ -1299,22 +1315,26 @@ func handleMessage(msg Message) {
 
 ### 11.4 Data Protection
 
-**Encryption at Rest**:
+**Encryption at Rest**
+
 - **Database**: PostgreSQL encryption (if supported by hosting)
 - **Backups**: Encrypted backup files
 
-**Data Privacy**:
+**Data Privacy**
+
 - **PII Protection**: User data handled according to privacy requirements
 - **Log Sanitization**: Remove sensitive data from logs
 
 ### 11.5 Rate Limiting & DDoS Protection
 
-**Rate Limiting** (as covered in 5.5.2):
+**Rate Limiting** (as covered in 5.5.2)
+
 - Per-user limits
 - Per-IP limits
 - Connection rate limits
 
-**DDoS Mitigation**:
+**DDoS Mitigation**
+
 - Basic rate limiting
 - Connection limits
 - Consider cloud DDoS protection for production
@@ -1325,13 +1345,17 @@ func handleMessage(msg Message) {
 
 ### 12.1 Logging
 
-**Log Levels**:
+**Log Levels**
+
 - **ERROR**: System errors, failures
 - **WARN**: Recoverable issues, retries
 - **INFO**: Important events (message sent, user connected)
 - **DEBUG**: Detailed debugging information
 
-**Log Format**: Structured JSON logs
+**Log Format**
+
+Structured JSON logs
+
 ```json
 {
   "timestamp": "2026-01-05T10:00:00Z",
@@ -1351,7 +1375,8 @@ func handleMessage(msg Message) {
 
 ### 12.2 Metrics
 
-**Key Metrics to Track**:
+**Key Metrics to Track**
+
 - **Message throughput**: Messages per second
 - **Connection count**: Active WebSocket connections
 - **Response time**: P50, P95, P99 latencies
@@ -1359,7 +1384,8 @@ func handleMessage(msg Message) {
 - **Database performance**: Query time, connection pool usage
 - **Redis performance**: Hit rate, memory usage
 
-**Metrics Collection**:
+**Metrics Collection**
+
 - **Development**: Basic logging
 - **Production**: Simple metrics endpoint (`/metrics`)
 - **Future**: Prometheus when needed
@@ -1380,11 +1406,13 @@ type ComponentHealth struct {
 }
 ```
 
-**Health Check Types**:
+**Health Check Types**
+
 - **Liveness**: Is the service running? (HTTP 200 OK)
 - **Readiness**: Is the service ready to accept traffic? (Check dependencies)
 
-**Dependency Checks**:
+**Dependency Checks**
+
 - PostgreSQL connectivity
 - Redis connectivity
 - Disk space
@@ -1399,25 +1427,29 @@ type ComponentHealth struct {
 **Goal**: Launch basic one-on-one chat functionality
 
 #### Week 1-2: Foundation
+
 - [ ] Project setup and database schema
 - [ ] User registration and login (JWT)
 - [ ] Basic API server with authentication
 - [ ] WebSocket connection handler
 
 #### Week 3-4: Core Messaging
+
 - [ ] One-on-one message send/receive
 - [ ] Message persistence to PostgreSQL
 - [ ] Basic message delivery acknowledgments
 - [ ] Simple Web client (React)
 
 #### Week 5-6: Reliability & Polish
+
 - [ ] Offline message queue (Redis)
 - [ ] Message sync on reconnection
 - [ ] Online presence tracking
 - [ ] Error handling and retry logic
 - [ ] Basic testing and deployment
 
-**Deliverables**:
+**Deliverables**
+
 - Functional one-on-one chat
 - Web client
 - RESTful API for user management
@@ -1430,19 +1462,22 @@ type ComponentHealth struct {
 **Goal**: Add group messaging and improve system reliability
 
 #### Week 7-8: Group Chat
+
 - [ ] Group creation and management APIs
 - [ ] Group message fanout logic
 - [ ] Group member synchronization
 - [ ] Group message persistence
 
 #### Week 9-10: Features & Optimization
+
 - [ ] Message search (basic)
 - [ ] Typing indicators
 - [ ] Read receipts
 - [ ] Performance optimization
 - [ ] Load testing
 
-**Deliverables**:
+**Deliverables**
+
 - Group chat up to 50 members
 - Message search
 - Enhanced user experience
@@ -1453,6 +1488,7 @@ type ComponentHealth struct {
 **Goal**: Prepare for production deployment
 
 #### Week 11-12: Production Features
+
 - [ ] Comprehensive error handling
 - [ ] Monitoring and alerting setup
 - [ ] Backup and recovery procedures
@@ -1460,7 +1496,8 @@ type ComponentHealth struct {
 - [ ] Documentation
 - [ ] Production deployment
 
-**Deliverables**:
+**Deliverables**
+
 - Production-ready system
 - Monitoring dashboard
 - Backup procedures
@@ -1558,16 +1595,16 @@ type ComponentHealth struct {
 
 ### 15.1 Architectural Trade-offs
 
-#### 15.1.1 Monolithic vs. Microservices
+#### 15.1.1 Monolithic Architecture (v1.0)
 
-**Decision**: Monolithic Initially
+**Version 1.0 Decision**: Monolithic
 
 **Rationale**:
 - **Pros**: Simpler development, easier debugging, faster iteration
 - **Cons**: Harder to scale individual components
-- **Trade-off**: Development speed vs. scalability (acceptable for MVP)
+- **Trade-off**: Development speed vs. scalability (acceptable for MVP and learning)
 
-**Migration Path**: Split into microservices when needed (DAU > 10K)
+**Future Migration**: When DAU > 10K or performance requires it, see [../design-document-guide.md](../design-document-guide.md) for migration options
 
 #### 15.1.2 PostgreSQL vs. NoSQL for Messages
 
@@ -1678,33 +1715,24 @@ type ComponentHealth struct {
 
 #### 16.1.3 Scalability Improvements
 
-- **Microservices Split**: Split into API, Chat, Presence services
-- **Database Sharding**: Shard messages by conversation_id
+**v1.0 Improvements**:
+- **Database Sharding**: Shard messages by conversation_id (advanced)
 - **Redis Cluster**: Scale Redis horizontally
-- **Message Queue Migration**: Migrate to Kafka for better durability
+- **Read Replicas**: Add PostgreSQL read replicas
+
+**Note**: For microservices architecture migration, see [design-document-guide.md](./design-document-guide.md)
 
 ### 16.2 Architecture Evolution
 
-**Phase 1 (Current)**: Monolithic
-- Single server
+**Version 1.0 (Current)**: Monolithic
+- Single Go service
 - PostgreSQL + Redis
-- Simple deployment
+- Simple Docker Compose deployment
+- Focus: Development and learning
 
-**Phase 2 (Future)**: Service Split
-- API Server (stateless)
-- Chat Server (stateful)
-- Shared database and cache
-
-**Phase 3 (Future)**: Microservices
-- Multiple services
-- Service mesh
-- Distributed tracing
-
-**Phase 4 (Future)**: Enterprise Scale
-- Multi-region deployment
-- Cassandra for messages
-- Kafka for event streaming
-- Full observability stack
+**Future Versions**: For migration to microservices or enterprise-scale architecture, see:
+- [../design-document-guide.md](../design-document-guide.md) - Migration guide
+- [../uim-system-design.md](../uim-system-design.md) - Extended design reference
 
 ---
 
@@ -1760,13 +1788,12 @@ Complete schema DDL available in repository: `./db/migrations/`
 
 ### C. Deployment Guides
 
-**Local Development**:
-- Docker Compose setup
-- Environment variables configuration
-- Database migration scripts
+For detailed deployment instructions, please refer to the **Deployment Guide**: [`deployment-guide-v1.0.md`](./deployment-guide-v1.0.md)
 
-**Production Deployment**:
-- Server requirements
-- Nginx configuration
-- SSL certificate setup
-- Monitoring setup
+The deployment guide includes:
+- **Local Development**: Docker Compose setup, environment configuration
+- **Production Deployment**: Single server deployment with Docker Compose
+- **Future Migration**: See [design-document-guide.md](./design-document-guide.md) for migration options
+- **Configuration**: Environment variables, database tuning, Redis configuration
+- **Monitoring & Maintenance**: Health checks, logging, backups, updates
+- **Troubleshooting**: Common issues and solutions
