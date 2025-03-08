@@ -2,10 +2,9 @@
 
 **Version**: 1.0 (Monolithic Architecture)
 
-**Document Version:** 1.0  
-**Last Updated:** January 5, 2026  
-**Author:** `convexwf@gmail.com`  
-**Based on:** [System Design v1.0](./uim-system-design-v1.0.md)
+| Version | Date       | Author               | Changes                                    |
+| ------- | ---------- | -------------------- | ------------------------------------------ |
+| 1.0     | 2025-02-10 | `convexwf@gmail.com` | Initial v1.0 roadmap document (Monolithic) |
 
 ---
 
@@ -13,7 +12,8 @@
 
 This roadmap outlines the development plan for **UIM System v1.0**, which uses a **monolithic architecture**. The plan is divided into 3 phases over 12 weeks, focusing on delivering a production-ready MVP.
 
-**Version 1.0 Characteristics**:
+**Version 1.0 Characteristics**
+
 - **Architecture**: Monolithic (single service)
 - **Timeline**: 12 weeks (3 months)
 - **Target**: MVP with one-on-one chat, group chat, and basic features
@@ -70,12 +70,12 @@ gantt
 - [ ] Initialize Go project structure
 - [ ] Set up Docker Compose for local development (PostgreSQL + Redis)
 - [ ] Configure development environment
-- [ ] Set up CI/CD pipeline (basic)
 - [ ] Create project documentation structure
 
 **Database Design**
 
 - [ ] Design database schema (users, conversations, messages, participants)
+  - Note: Friendships table deferred to Phase 2 (not required for MVP)
 - [ ] Create database migrations (using GORM)
 - [ ] Set up database indexes
 - [ ] Write database seed scripts for testing
@@ -90,6 +90,7 @@ gantt
 - [ ] Add password hashing (bcrypt)
 - [ ] Add input validation and sanitization
 - [ ] Write unit tests for authentication
+- [ ] Write basic integration tests for auth endpoints
 
 **API Server Setup**
 
@@ -100,14 +101,26 @@ gantt
 - [ ] Implement health check endpoint (`GET /health`)
 - [ ] Set up request/response logging
 
+**Documentation**
+
+- [ ] Create feature documentation (`doc/feature/initialization.md`)
+  - Document project structure
+  - Document database schema
+  - Document authentication flow
+  - Document API endpoints
+  - Document development setup
+
 **Deliverables**
 
 - ✅ Working authentication system
-- ✅ Database schema deployed
+- ✅ Database schema deployed (users, conversations, participants, messages)
 - ✅ Basic API server running
 - ✅ Development environment ready
+- ✅ Feature documentation completed
 
 **Estimated Effort**: 80 hours
+
+**Note**: CI/CD pipeline setup deferred to Phase 3 (Production Readiness)
 
 ---
 
