@@ -1,0 +1,83 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+doc/
+*.md
+!README.md
+
+# Build artifacts
+bin/
+build/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+coverage.out
+coverage.html
+
+# Test files
+*_test.go
+**/*_test.go
+
+# Development files
+.env
+.env.local
+.env.*.local
+.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+docker-compose.yml
+docker-compose.override.yml
+.dockerignore
+Dockerfile*
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Old project directory (if exists)
+uim/
+
+# SpecStory project files
+.project.json
+.cursorindexingignore
+.specstory
+.what-is-this.md
+
+# Go specific
+go.work
+vendor/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Scripts (not needed in container)
+scripts/
+
+# Migrations (if using separate migration tool)
+# migrations/

@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: uim-postgres
@@ -21,10 +22,11 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Redis Cache and Queue
   redis:
     image: redis:7-alpine
     container_name: uim-redis
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    command: redis-server --appendonly yes ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
@@ -36,6 +38,51 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+
+  # UIM Server (Monolithic Application)
+  uim-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: uim-server
+    environment:
+      # Database
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-uim_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-uim_password}
+      POSTGRES_DB: ${POSTGRES_DB:-uim_db}
+      POSTGRES_SSLMODE: disable
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      
+      # Application
+      APP_ENV: ${APP_ENV:-development}
+      APP_PORT: ${APP_PORT:-8080}
+      WS_PORT: ${WS_PORT:-8081}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-this-in-production}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-15m}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-168h}
+      
+      # CORS
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+      - "${WS_PORT:-8081}:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - uim-network
     restart: unless-stopped
 
 volumes:
