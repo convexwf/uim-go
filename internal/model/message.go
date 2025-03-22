@@ -4,7 +4,7 @@
 // File: message.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-13
+// Last modified: 2025-03-22
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,13 +40,13 @@ const (
 // Message represents a message in a conversation.
 type Message struct {
 	MessageID      int64          `gorm:"primaryKey;autoIncrement" json:"message_id"`
-	ConversationID uuid.UUID      `gorm:"type:uuid;not null;index:idx_conversation_time" json:"conversation_id"`
-	SenderID       uuid.UUID      `gorm:"type:uuid;not null;index" json:"sender_id"`
+	ConversationID uuid.UUID      `gorm:"type:uuid;not null;index:idx_messages_conversation_time" json:"conversation_id"`
+	SenderID       uuid.UUID      `gorm:"type:uuid;not null;index:idx_messages_sender" json:"sender_id"`
 	Content        string         `gorm:"type:text;not null" json:"content"`
 	MessageType    MessageType    `gorm:"type:varchar(20);default:'text'" json:"type"`
-	CreatedAt      time.Time      `gorm:"index:idx_conversation_time" json:"created_at"`
+	CreatedAt      time.Time      `gorm:"index:idx_messages_conversation_time" json:"created_at"`
 	Metadata       string         `gorm:"type:jsonb" json:"metadata,omitempty"`
-	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
+	DeletedAt      gorm.DeletedAt `gorm:"index:idx_messages_deleted_at" json:"-"`
 
 	// Relationships
 	Conversation Conversation `gorm:"foreignKey:ConversationID" json:"conversation,omitempty"`

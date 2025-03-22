@@ -1,8 +1,12 @@
 # Initialization Feature Documentation
 
-**Phase**: Week 1-2 (Foundation)  
-**Status**: Completed  
-**Date**: 2025-02-10
+| Feature             | Status | Date       |
+| ------------------- | ------ | ---------- |
+| Project Setup       | ✅      | 2025-03-13 |
+| Database Schema     | ✅      | 2025-03-15 |
+| User Authentication | ✅      | 2025-03-17 |
+| API Server          | ✅      | 2025-03-19 |
+| Documentation       | ✅      | 2025-03-20 |
 
 ---
 
@@ -12,7 +16,7 @@ This document describes the initialization phase of the UIM system, which includ
 
 ## Project Structure
 
-```
+```txt
 uim-go/
 ├── cmd/
 │   └── server/          # Application entry point
@@ -23,11 +27,10 @@ uim-go/
 │   ├── model/           # Data models
 │   ├── repository/      # Data access layer
 │   └── service/         # Business logic layer
-├── internal/
-│   ├── pkg/             # Internal utility packages
+│   └── pkg/             # Internal utility packages
 │   │   ├── jwt/         # JWT token management
 │   │   └── password/    # Password hashing utilities
-├── migrations/          # Database migrations (future)
+├── migrations/          # SQL database migration files
 ├── scripts/             # Utility scripts
 ├── docker/              # Docker-related files
 ├── docker-compose.yml   # Local development environment
@@ -138,6 +141,14 @@ CREATE INDEX idx_messages_sender ON messages(sender_id);
 - `metadata`: Optional JSON metadata
 
 **Note**: Friendships table is deferred to Phase 2 (not required for MVP).
+
+## Database Migrations
+
+The project uses a hybrid approach for database schema management:
+- **Development**: GORM AutoMigrate automatically runs on server startup
+- **Production**: SQL migration files in `migrations/` directory for version control
+
+All indexes use explicit naming to ensure consistency between GORM models and SQL migrations. See [Database Migrations Documentation](./database-migrations.md) for detailed information.
 
 ## Authentication Flow
 
@@ -343,8 +354,9 @@ Configuration is loaded from environment variables with defaults. See `.env.exam
    go mod download
    ```
 
-5. **Run migrations** (automatic on startup):
-   The application automatically runs migrations on startup using GORM AutoMigrate.
+5. **Run migrations**:
+   - **Development**: Migrations run automatically on startup using GORM AutoMigrate
+   - **Production**: See [Database Migrations Documentation](./database-migrations.md) for SQL migration instructions
 
 6. **Start server**:
    ```bash
@@ -360,12 +372,14 @@ Configuration is loaded from environment variables with defaults. See `.env.exam
 
 ### Unit Tests
 
-Run unit tests:
+Run unit tests
+
 ```bash
 go test ./pkg/...
 ```
 
-**Test Coverage**:
+**Test Coverage**
+
 - Password hashing and verification
 - JWT token generation and validation
 
@@ -378,7 +392,7 @@ Integration tests for authentication endpoints will be added in Phase 2.
 ✅ **Project Structure**: Complete Go project structure with proper layering  
 ✅ **Docker Compose**: PostgreSQL and Redis services configured  
 ✅ **Database Schema**: Users, conversations, participants, messages tables  
-✅ **Database Migrations**: GORM AutoMigrate configured  
+✅ **Database Migrations**: GORM AutoMigrate + SQL migration files (see [Database Migrations Documentation](./database-migrations.md))  
 ✅ **User Authentication**: Registration, login, token refresh  
 ✅ **JWT Implementation**: Access and refresh tokens  
 ✅ **API Server**: Gin framework with middleware  
@@ -389,6 +403,7 @@ Integration tests for authentication endpoints will be added in Phase 2.
 ## Next Steps
 
 **Week 3-4: Core Messaging**
+
 - Implement WebSocket connections
 - Implement message sending/receiving
 - Implement message persistence
@@ -398,6 +413,7 @@ Integration tests for authentication endpoints will be added in Phase 2.
 
 - Friendships table is intentionally deferred to Phase 2 (not required for MVP)
 - CI/CD pipeline setup is deferred to Phase 3 (Production Readiness)
-- Database migrations use GORM AutoMigrate (manual migrations can be added later)
+- Database migrations use hybrid approach: GORM AutoMigrate for development, SQL migration files for production
+- See [Database Migrations Documentation](./database-migrations.md) for detailed migration strategy and index management
 - All passwords are hashed using bcrypt with cost factor 10
 - JWT tokens use HS256 signing algorithm

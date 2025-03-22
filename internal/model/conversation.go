@@ -4,7 +4,7 @@
 // File: conversation.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-13
+// Last modified: 2025-03-22
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ type Conversation struct {
 	CreatedBy      uuid.UUID        `gorm:"type:uuid;not null" json:"created_by"`
 	CreatedAt      time.Time        `json:"created_at"`
 	UpdatedAt      time.Time        `json:"updated_at"`
-	DeletedAt      gorm.DeletedAt   `gorm:"index" json:"-"`
+	DeletedAt      gorm.DeletedAt   `gorm:"index:idx_conversations_deleted_at" json:"-"`
 
 	// Relationships
 	Participants []ConversationParticipant `gorm:"foreignKey:ConversationID" json:"participants,omitempty"`
