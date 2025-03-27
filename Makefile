@@ -1,7 +1,7 @@
 # Makefile for UIM Go Server
 # Copyright 2025 convexwf
 
-.PHONY: help build run test clean docker-build docker-up docker-down docker-logs migrate
+.PHONY: help build run test clean docker-build docker-up docker-down docker-logs init-db migrate
 
 # Variables
 APP_NAME := uim-server
@@ -21,7 +21,8 @@ help:
 	@echo "  make docker-up    - Start Docker services (PostgreSQL + Redis)"
 	@echo "  make docker-down  - Stop Docker services"
 	@echo "  make docker-logs  - View Docker logs"
-	@echo "  make migrate      - Run database migrations (via server startup)"
+	@echo "  make init-db      - Run init_db.sh (or via docker if postgres is up and psql missing)"
+	@echo "  make migrate      - (deprecated) Use init-db; schema is SQL-first"
 
 # Build the application
 build:
@@ -75,10 +76,21 @@ docker-down:
 docker-logs:
 	@docker-compose logs -f
 
-# Run database migrations (migrations run automatically on server startup)
+# Initialize DB schema (SQL-first). Run before first start or after schema changes.
+init-db:
+	@if command -v psql >/dev/null 2>&1; then \
+		./scripts/init_db.sh; \
+	elif docker ps --format '{{.Names}}' | grep -q 'uim-postgres'; then \
+		echo "psql not found; running migration inside uim-postgres container..."; \
+		docker exec -i uim-postgres psql -U $${POSTGRES_USER:-uim_user} -d $${POSTGRES_DB:-uim_db} -v ON_ERROR_STOP=1 < migrations/000001_initial_schema.up.sql; \
+		echo "Done."; \
+	else \
+		echo "Error: install psql and run ./scripts/init_db.sh, or start postgres and run make init-db again"; exit 1; \
+	fi
+
+# Deprecated: schema is created by init-db, not on server startup
 migrate:
-	@echo "Migrations run automatically on server startup"
-	@echo "Start the server to run migrations: make run"
+	@echo "Run 'make init-db' before starting the server. See doc/feature/database-migrations.md"
 
 # Install dependencies
 deps:

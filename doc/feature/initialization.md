@@ -144,11 +144,7 @@ CREATE INDEX idx_messages_sender ON messages(sender_id);
 
 ## Database Migrations
 
-The project uses a hybrid approach for database schema management:
-- **Development**: GORM AutoMigrate automatically runs on server startup
-- **Production**: SQL migration files in `migrations/` directory for version control
-
-All indexes use explicit naming to ensure consistency between GORM models and SQL migrations. See [Database Migrations Documentation](./database-migrations.md) for detailed information.
+Schema is **SQL-first**: run **`scripts/init_db.sh`** before starting the service to create tables and indexes (idempotent). The app does **not** run migrations by default; it only **checks** that the schema exists. GORM is used for this check and, optionally in non-production, as a fallback that applies the same SQL file. See [Database Migrations Documentation](./database-migrations.md) for details.
 
 ## Authentication Flow
 

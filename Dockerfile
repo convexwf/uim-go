@@ -24,8 +24,9 @@ WORKDIR /app
 # Install ca-certificates for HTTPS
 RUN apk --no-cache add ca-certificates
 
-# Copy binary from builder
+# Copy binary and migrations from builder
 COPY --from=builder /app/bin/uim-server .
+COPY --from=builder /app/migrations ./migrations
 
 # Expose ports
 EXPOSE 8080 8081

@@ -4,7 +4,7 @@
 // File: main.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-13
+// Last modified: 2025-03-27
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,12 +23,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
+	"strings"
 
 	"github.com/convexwf/uim-go/internal/api"
 	"github.com/convexwf/uim-go/internal/config"
 	"github.com/convexwf/uim-go/internal/middleware"
-	"github.com/convexwf/uim-go/internal/model"
 	"github.com/convexwf/uim-go/internal/pkg/jwt"
 	"github.com/convexwf/uim-go/internal/repository"
 	"github.com/convexwf/uim-go/internal/service"
@@ -51,9 +53,9 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
-	// Run migrations
-	if err := runMigrations(db); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+	// Schema is created by scripts/init_db.sh (SQL first). Here we only check; optional fallback.
+	if err := ensureSchema(db, cfg); err != nil {
+		log.Fatalf("Schema check failed: %v", err)
 	}
 
 	// Initialize JWT manager
@@ -106,12 +108,68 @@ func initDatabase(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-// runMigrations runs database migrations using GORM AutoMigrate.
-func runMigrations(db *gorm.DB) error {
-	return db.AutoMigrate(
-		&model.User{},
-		&model.Conversation{},
-		&model.ConversationParticipant{},
-		&model.Message{},
-	)
+// ensureSchema checks that required tables exist. If not, exits with a message to run init_db.sh,
+// unless AUTO_MIGRATE_FALLBACK=1 (and not production), in which case it runs the SQL migration as fallback.
+func ensureSchema(db *gorm.DB, cfg *config.Config) error {
+	if checkSchemaExists(db) {
+		return nil
+	}
+	fallback := os.Getenv("AUTO_MIGRATE_FALLBACK")
+	if cfg.App.Env == "production" || fallback == "" || (fallback != "1" && fallback != "true" && fallback != "yes") {
+		return fmt.Errorf("schema not ready: run scripts/init_db.sh before starting the service")
+	}
+	log.Print("Schema missing; applying fallback migration (AUTO_MIGRATE_FALLBACK is set)...")
+	if err := runSQLMigration(db); err != nil {
+		return fmt.Errorf("fallback migration failed: %w", err)
+	}
+	if !checkSchemaExists(db) {
+		return fmt.Errorf("schema still missing after fallback migration")
+	}
+	log.Print("Fallback migration completed.")
+	return nil
+}
+
+// checkSchemaExists returns true if required tables exist (e.g. users).
+func checkSchemaExists(db *gorm.DB) bool {
+	var exists bool
+	err := db.Raw("SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users')").Scan(&exists).Error
+	return err == nil && exists
+}
+
+// runSQLMigration runs the initial schema SQL file (used only as fallback when AUTO_MIGRATE_FALLBACK=1).
+func runSQLMigration(db *gorm.DB) error {
+	const path = "migrations/000001_initial_schema.up.sql"
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("migration file not found: %s (run init_db.sh instead)", path)
+		}
+		return err
+	}
+	raw, err := db.DB()
+	if err != nil {
+		return err
+	}
+	for _, s := range strings.Split(string(data), ";") {
+		s = stripSQLComments(strings.TrimSpace(s))
+		if s == "" {
+			continue
+		}
+		if _, err := raw.Exec(s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func stripSQLComments(s string) string {
+	var b strings.Builder
+	for _, line := range strings.Split(s, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed != "" && !strings.HasPrefix(trimmed, "--") {
+			b.WriteString(line)
+			b.WriteString("\n")
+		}
+	}
+	return strings.TrimSpace(b.String())
 }
