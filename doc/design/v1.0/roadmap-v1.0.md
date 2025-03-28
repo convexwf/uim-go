@@ -67,48 +67,49 @@ gantt
 
 **Project Setup**
 
-- [ ] Initialize Go project structure
-- [ ] Set up Docker Compose for local development (PostgreSQL + Redis)
-- [ ] Configure development environment
-- [ ] Create project documentation structure
+- [x] Initialize Go project structure
+- [x] Set up Docker Compose for local development (PostgreSQL + Redis)
+- [x] Configure development environment
+- [x] Create project documentation structure
 
 **Database Design**
 
-- [ ] Design database schema (users, conversations, messages, participants)
+- [x] Design database schema (users, conversations, messages, participants)
   - Note: Friendships table deferred to Phase 2 (not required for MVP)
-- [ ] Create database migrations (using GORM)
-- [ ] Set up database indexes
-- [ ] Write database seed scripts for testing
-- [ ] Test database performance with sample data
+- [x] Create database migrations (SQL-first via `init_db.sh`; GORM models for ORM)
+- [x] Set up database indexes
+- [x] Write database seed scripts for testing (`scripts/seed_db.sh`, `cmd/seed`)
+- [x] Test database performance with sample data (`tests/integration/db_performance_test.go`, run after seed)
 
 **User Authentication**
 
-- [ ] Implement user registration API (`POST /api/auth/register`)
-- [ ] Implement user login API (`POST /api/auth/login`)
-- [ ] Implement JWT token generation and validation
-- [ ] Implement refresh token mechanism
-- [ ] Add password hashing (bcrypt)
-- [ ] Add input validation and sanitization
-- [ ] Write unit tests for authentication
-- [ ] Write basic integration tests for auth endpoints
+- [x] Implement user registration API (`POST /api/auth/register`)
+- [x] Implement user login API (`POST /api/auth/login`)
+- [x] Implement JWT token generation and validation
+- [x] Implement refresh token mechanism
+- [x] Add password hashing (bcrypt)
+- [x] Add input validation and sanitization
+- [x] Write unit tests for authentication
+- [x] Write basic integration tests for auth endpoints (`tests/integration/auth_test.go`, run with `make test-integration`)
 
 **API Server Setup**
 
-- [ ] Set up Gin framework
-- [ ] Implement middleware (CORS, logging, error handling)
-- [ ] Implement authentication middleware
-- [ ] Create API route structure
-- [ ] Implement health check endpoint (`GET /health`)
-- [ ] Set up request/response logging
+- [x] Set up Gin framework
+- [x] Implement middleware (CORS, logging, error handling)
+- [x] Implement authentication middleware
+- [x] Create API route structure
+- [x] Implement health check endpoint (`GET /health`)
+- [x] Set up request/response logging
 
 **Documentation**
 
-- [ ] Create feature documentation (`doc/feature/initialization.md`)
+- [x] Create feature documentation (`doc/feature/initialization.md`)
   - Document project structure
   - Document database schema
   - Document authentication flow
   - Document API endpoints
   - Document development setup
+- [x] Create database migrations documentation (`doc/feature/database-migrations.md`)
 
 **Deliverables**
 

@@ -5,7 +5,7 @@
 # SpecStory explanation file
 /.what-is-this.md
 
-# Binaries
+# Binaries (must live in bin/; see doc/feature/project-rules.md)
 *.exe
 *.exe~
 *.dll
@@ -58,3 +58,6 @@ docker-compose.override.yml
 # Build artifacts
 tmp/
 temp/
+
+# For cursor rules
+.cursor/

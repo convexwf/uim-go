@@ -31,7 +31,9 @@ uim-go/
 │   │   ├── jwt/         # JWT token management
 │   │   └── password/    # Password hashing utilities
 ├── migrations/          # SQL database migration files
-├── scripts/             # Utility scripts
+├── scripts/             # Utility scripts (init_db.sh, seed_db.sh)
+├── tests/               # Integration tests (not unit tests)
+│   └── integration/    # DB and auth endpoint integration tests
 ├── docker/              # Docker-related files
 ├── docker-compose.yml   # Local development environment
 └── doc/                 # Documentation
@@ -145,6 +147,8 @@ CREATE INDEX idx_messages_sender ON messages(sender_id);
 ## Database Migrations
 
 Schema is **SQL-first**: run **`scripts/init_db.sh`** before starting the service to create tables and indexes (idempotent). The app does **not** run migrations by default; it only **checks** that the schema exists. GORM is used for this check and, optionally in non-production, as a fallback that applies the same SQL file. See [Database Migrations Documentation](./database-migrations.md) for details.
+
+**Seed and testing**: After `init_db.sh`, run **`make seed-db`** (or `./scripts/seed_db.sh`) to create test users (alice, bob, test / password `password123`). Integration tests live in **`tests/integration/`** and run with **`make test-integration`** (requires DB; run seed-db for the DB performance test).
 
 ## Authentication Flow
 

@@ -1,18 +1,20 @@
 # Makefile for UIM Go Server
 # Copyright 2025 convexwf
 
-.PHONY: help build run test clean docker-build docker-up docker-down docker-logs init-db migrate
+.PHONY: help build build-seed run test test-integration clean docker-build docker-up docker-down docker-logs init-db seed-db migrate
 
 # Variables
 APP_NAME := uim-server
 BINARY_PATH := bin/$(APP_NAME)
+SEED_BINARY := bin/seed
 DOCKER_IMAGE := uim-go:latest
 DOCKER_CONTAINER := uim-server
 
 # Default target
 help:
 	@echo "Available targets:"
-	@echo "  make build        - Build the application"
+	@echo "  make build        - Build the application (bin/uim-server)"
+	@echo "  make build-seed   - Build seed binary (bin/seed)"
 	@echo "  make run          - Run the application"
 	@echo "  make test         - Run all tests"
 	@echo "  make test-cover   - Run tests with coverage"
@@ -22,6 +24,8 @@ help:
 	@echo "  make docker-down  - Stop Docker services"
 	@echo "  make docker-logs  - View Docker logs"
 	@echo "  make init-db      - Run init_db.sh (or via docker if postgres is up and psql missing)"
+	@echo "  make seed-db      - Seed test users (alice, bob, test / password123). Run after init-db."
+	@echo "  make test-integration - Run all tests including DB and auth integration (requires DB)"
 	@echo "  make migrate      - (deprecated) Use init-db; schema is SQL-first"
 
 # Build the application
@@ -30,15 +34,26 @@ build:
 	@go build -o $(BINARY_PATH) ./cmd/server
 	@echo "Build complete: $(BINARY_PATH)"
 
-# Run the application
-run:
-	@echo "Running $(APP_NAME)..."
-	@go run ./cmd/server
+# Build seed binary (output to bin/seed only; see doc/feature/project-rules.md)
+build-seed:
+	@echo "Building seed..."
+	@go build -o $(SEED_BINARY) ./cmd/seed
+	@echo "Build complete: $(SEED_BINARY)"
 
-# Run all tests
+# Run the application (build then run; see .cursor/rules/build-and-run.mdc)
+run: build
+	@echo "Running $(APP_NAME)..."
+	@./$(BINARY_PATH)
+
+# Run unit tests only (internal packages; integration tests live in tests/)
 test:
-	@echo "Running tests..."
-	@go test ./internal/... -v
+	@echo "Running unit tests..."
+	@go test ./internal/... -short -v
+
+# Run integration tests (tests/). Requires DB; run init-db and optionally seed-db first.
+test-integration:
+	@echo "Running integration tests (tests/)..."
+	@go test ./tests/... -v
 
 # Run tests with coverage
 test-cover:
@@ -47,7 +62,7 @@ test-cover:
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
-# Clean build artifacts
+# Clean build artifacts (bin/ contains server, seed, etc.)
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf bin/
@@ -87,6 +102,10 @@ init-db:
 	else \
 		echo "Error: install psql and run ./scripts/init_db.sh, or start postgres and run make init-db again"; exit 1; \
 	fi
+
+# Seed test users (idempotent). Run after init-db. Uses bin/seed if present else go run.
+seed-db:
+	@./scripts/seed_db.sh
 
 # Deprecated: schema is created by init-db, not on server startup
 migrate:
