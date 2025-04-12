@@ -4,7 +4,7 @@
 // File: router.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-13
+// Last modified: 2025-04-12
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,21 +26,24 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"github.com/convexwf/uim-go/internal/middleware"
+	"github.com/convexwf/uim-go/internal/pkg/jwt"
 	"github.com/convexwf/uim-go/internal/service"
+	"github.com/convexwf/uim-go/internal/websocket"
 )
 
 // SetupRouter configures and returns the HTTP router with all routes.
 //
-// It sets up health check endpoints, authentication endpoints,
-// and prepares the structure for protected routes (to be added in Phase 2).
-//
 // Parameters:
 //   - db: The database connection
 //   - authService: The authentication service
+//   - jwtManager: The JWT manager for protected routes
+//   - convSvc: The conversation service (optional for messaging routes)
+//   - msgSvc: The message service (optional for messaging routes)
 //
 // Returns:
 //   - *gin.Engine: The configured Gin router
-func SetupRouter(db *gorm.DB, authService service.AuthService) *gin.Engine {
+func SetupRouter(db *gorm.DB, authService service.AuthService, jwtManager *jwt.JWTManager, convSvc service.ConversationService, msgSvc service.MessageService, hub *websocket.Hub) *gin.Engine {
 	router := gin.Default()
 
 	// Health check (no auth required)
@@ -48,25 +51,33 @@ func SetupRouter(db *gorm.DB, authService service.AuthService) *gin.Engine {
 	router.GET("/health", healthHandler.Health)
 
 	// API routes
-	api := router.Group("/api")
+	apiGroup := router.Group("/api")
 	{
 		// Auth routes (no auth required)
 		authHandler := NewAuthHandler(authService)
-		auth := api.Group("/auth")
+		auth := apiGroup.Group("/auth")
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/refresh", authHandler.RefreshToken)
 		}
 
-		// Protected routes will be added here in Phase 2
-		// protected := api.Group("")
-		// protected.Use(middleware.AuthMiddleware(jwtManager))
-		// {
-		//     // Conversation routes
-		//     // Message routes
-		// }
+		// Protected routes (messaging)
+		protected := apiGroup.Group("")
+		protected.Use(middleware.AuthMiddleware(jwtManager))
+		{
+			convHandler := NewConversationHandler(convSvc)
+			protected.POST("/conversations", convHandler.CreateOneOnOne)
+			protected.GET("/conversations", convHandler.List)
+
+			msgHandler := NewMessageHandler(msgSvc)
+			protected.GET("/conversations/:id/messages", msgHandler.ListByConversation)
+		}
 	}
+
+	// WebSocket (token in query or Authorization header)
+	wsHandler := NewWebSocketHandler(jwtManager, hub, msgSvc)
+	router.GET("/ws", wsHandler.ServeWS)
 
 	return router
 }

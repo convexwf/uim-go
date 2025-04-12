@@ -4,7 +4,7 @@
 // File: main.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-27
+// Last modified: 2025-04-12
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import (
 	"github.com/convexwf/uim-go/internal/pkg/jwt"
 	"github.com/convexwf/uim-go/internal/repository"
 	"github.com/convexwf/uim-go/internal/service"
+	"github.com/convexwf/uim-go/internal/websocket"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -67,12 +68,15 @@ func main() {
 
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
+	convRepo := repository.NewConversationRepository(db)
+	msgRepo := repository.NewMessageRepository(db)
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, jwtManager)
-
-	// Setup router
-	router := api.SetupRouter(db, authService)
+	convSvc := service.NewConversationService(convRepo, userRepo)
+	hub := websocket.NewHub(convRepo)
+	msgSvc := service.NewMessageService(msgRepo, convSvc, hub)
+	router := api.SetupRouter(db, authService, jwtManager, convSvc, msgSvc, hub)
 
 	// Apply middleware
 	router.Use(middleware.CORSMiddleware(cfg))

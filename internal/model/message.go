@@ -4,7 +4,7 @@
 // File: message.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-22
+// Last modified: 2025-04-12
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ type Message struct {
 	Content        string         `gorm:"type:text;not null" json:"content"`
 	MessageType    MessageType    `gorm:"type:varchar(20);default:'text'" json:"type"`
 	CreatedAt      time.Time      `gorm:"index:idx_messages_conversation_time" json:"created_at"`
-	Metadata       string         `gorm:"type:jsonb" json:"metadata,omitempty"`
+	Metadata       *string        `gorm:"type:jsonb" json:"metadata,omitempty"`
 	DeletedAt      gorm.DeletedAt `gorm:"index:idx_messages_deleted_at" json:"-"`
 
 	// Relationships

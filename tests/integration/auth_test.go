@@ -20,6 +20,7 @@ import (
 	"github.com/convexwf/uim-go/internal/pkg/jwt"
 	"github.com/convexwf/uim-go/internal/repository"
 	"github.com/convexwf/uim-go/internal/service"
+	"github.com/convexwf/uim-go/internal/websocket"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -40,8 +41,13 @@ func TestAuthEndpoints_RegisterLoginRefresh(t *testing.T) {
 	}
 	jwtMgr := jwt.NewJWTManager(cfg.JWT.Secret, cfg.JWT.AccessExpiry, cfg.JWT.RefreshExpiry)
 	userRepo := repository.NewUserRepository(db)
+	convRepo := repository.NewConversationRepository(db)
+	msgRepo := repository.NewMessageRepository(db)
 	authSvc := service.NewAuthService(userRepo, jwtMgr)
-	router := api.SetupRouter(db, authSvc)
+	convSvc := service.NewConversationService(convRepo, userRepo)
+	hub := websocket.NewHub(convRepo)
+	msgSvc := service.NewMessageService(msgRepo, convSvc, hub)
+	router := api.SetupRouter(db, authSvc, jwtMgr, convSvc, msgSvc, hub)
 	router.Use(middleware.CORSMiddleware(cfg))
 	router.Use(middleware.LoggerMiddlewareSimple())
 	router.Use(middleware.ErrorHandlerMiddleware())
