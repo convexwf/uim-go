@@ -8,6 +8,17 @@
 
 ---
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Layout](#layout)
+- [Commands](#commands)
+- [Integration Tests](#integration-tests)
+- [Unit Tests](#unit-tests)
+- [Related](#related)
+
+---
+
 ## Overview
 
 The project uses the **standard Go testing package** (`testing`). No extra test framework is required. Unit tests live next to code in `internal/`; integration tests live in **`tests/integration/`**.

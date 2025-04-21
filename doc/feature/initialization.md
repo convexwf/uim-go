@@ -10,6 +10,42 @@
 
 ---
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Project Structure](#project-structure)
+- [Database Schema](#database-schema)
+  - [Users Table](#users-table)
+  - [Conversations Table](#conversations-table)
+  - [Conversation Participants Table](#conversation-participants-table)
+  - [Messages Table](#messages-table)
+- [Database Migrations](#database-migrations)
+- [Authentication Flow](#authentication-flow)
+  - [Registration](#registration)
+  - [Login](#login)
+  - [Token Refresh](#token-refresh)
+  - [JWT Token Structure](#jwt-token-structure)
+- [API Endpoints](#api-endpoints)
+  - [Health Check](#health-check)
+  - [Authentication Endpoints](#authentication-endpoints)
+- [Middleware](#middleware)
+  - [CORS Middleware](#cors-middleware)
+  - [Logger Middleware](#logger-middleware)
+  - [Error Handler Middleware](#error-handler-middleware)
+  - [Authentication Middleware](#authentication-middleware)
+- [Configuration](#configuration)
+- [Development Setup](#development-setup)
+  - [Prerequisites](#prerequisites)
+  - [Setup Steps](#setup-steps)
+- [Testing](#testing)
+  - [Unit Tests](#unit-tests)
+  - [Integration Tests](#integration-tests)
+- [Deliverables](#deliverables)
+- [Next Steps](#next-steps)
+- [Notes](#notes)
+
+---
+
 ## Overview
 
 This document describes the initialization phase of the UIM system, which includes project setup, database schema design, user authentication, and basic API server infrastructure.

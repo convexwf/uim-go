@@ -9,6 +9,23 @@
 
 ---
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Roles](#roles)
+- [Primary Path: init_db.sh](#primary-path-init_dbsh)
+- [Application Startup: Check Only](#application-startup-check-only)
+- [Optional Fallback (Non-Production Only)](#optional-fallback-non-production-only)
+- [GORM and Index Naming](#gorm-and-index-naming)
+- [SQL Migration Files](#sql-migration-files)
+- [Running Migrations in Practice](#running-migrations-in-practice)
+  - [Before first start (or after schema changes)](#before-first-start-or-after-schema-changes)
+  - [Without init_db.sh (dev only, optional)](#without-init_dbsh-dev-only-optional)
+  - [Production](#production)
+- [Related Documentation](#related-documentation)
+
+---
+
 ## Overview
 
 Schema is **SQL-first**: tables and indexes are created by running **`scripts/init_db.sh`** before starting the service. The application does **not** run migrations by default; it only **checks** that the schema exists. GORM is used for **assistant check** and, in non-production, an **optional fallback** when the schema is missing.

@@ -9,6 +9,19 @@
 
 ---
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Backend Architecture](#backend-architecture)
+- [HTTP API Endpoints](#http-api-endpoints)
+- [WebSocket](#websocket)
+  - [JSON Protocol](#json-protocol)
+- [WebSocket Hub & Handler](#websocket-hub--handler)
+- [Message Flow](#message-flow)
+- [Testing](#testing)
+
+---
+
 ## Overview
 
 Core messaging provides **one-on-one conversations** and **text messages** with persistence and real-time delivery via WebSocket. There is **no web frontend** in this phase; behaviour is validated by **unit tests** (services with mocks) and **integration tests** (HTTP + WebSocket against a real DB).

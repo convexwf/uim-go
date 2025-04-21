@@ -6,10 +6,22 @@
 | Build then run (all runnables) | ✅ | 2025-03-13 |
 | Long-term vs temporary | ✅ | 2025-03-13 |
 | Backup rules in project-rules.md | ✅ | 2025-03-13 |
+| Table of Contents (doc/, to ####) | ✅ | 2025-03-27 |
 
 ---
 
 **Authoritative rules for the AI are in `.cursor/rules/`** (Cursor rules). **This doc is the backup:** every rule in `.cursor/rules/` must have a corresponding section or summary here; when you add or change a rule in .cursor/rules/, update this doc so it stays in sync.
+
+---
+
+## Table of Contents
+
+- [Binaries Must Go in `bin/`](#binaries-must-go-in-bin)
+- [Build Then Run (All runnables, no `go run`)](#build-then-run-all-runnables-no-go-run)
+- [Long-term vs temporary](#long-term-vs-temporary)
+- [Backup rules in project-rules.md](#backup-rules-in-project-rulesmd)
+- [Table of Contents in documentation](#table-of-contents-in-documentation)
+- [Related](#related)
 
 ---
 
@@ -52,6 +64,14 @@
 **Rule**: Every rule added or changed in `.cursor/rules/` must be backed up in this doc (`doc/feature/project-rules.md`). When adding a new .mdc under .cursor/rules/, add a corresponding section here; when editing an existing rule, update the backup here so the doc stays in sync.
 
 *(Backup of `.cursor/rules/backup-rules.mdc`)*
+
+---
+
+## Table of Contents in documentation
+
+**Rule**: Every Markdown document under `doc/` (design and feature docs) must include a `## Table of Contents` section. The TOC must list headings down to the 4th level (`##`, `###`, `####`) where such headings exist, with indentation and markdown links to heading anchors. For very long docs (e.g. 50+ sections), TOC may list to `###` with key `####` subsections. Place the TOC after the title/metadata and first `---`, before the first content section. Use GitHub-style anchors (lowercase, spaces to hyphens). When adding or restructuring a doc under `doc/`, add or update the TOC so it stays accurate to level 4.
+
+*(Backup of `.cursor/rules/doc-toc.mdc`)*
 
 ---
 
