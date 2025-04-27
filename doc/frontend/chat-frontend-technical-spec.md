@@ -420,38 +420,39 @@ type Message = {
 Recommended layout under project root (e.g. `client/uim-react/` or repo root):
 
 ```
-app/
-  layout.tsx
-  page.tsx
-  globals.css
-  (auth)/
-    login/page.tsx
-    register/page.tsx
-  (chat)/
-    layout.tsx
-    conversations/page.tsx
-    conversations/[id]/page.tsx
-components/
-  ui/           # Button, Input, Card
-  layout/       # Header, Sidebar
-  features/     # ConversationList, ChatPane, MessageInput
-lib/
-  api.ts        # REST: auth, conversations, messages
-  ws.ts         # WebSocket connect, send, subscribe
-  auth.ts       # getToken, setToken, logout, refresh
-  types.ts      # User, Conversation, Message
-hooks/
-  useAuth.ts
-  useConversation.ts
-  useWebSocket.ts
-public/
-doc/            # Project-specific docs (README, deployment)
-scripts/        # build.sh, deploy.sh
-.env.local.example
-next.config.js
-tailwind.config.ts
-tsconfig.json
-package.json
+.
+├── app/
+│   ├── layout.tsx
+│   ├── page.tsx
+│   ├── globals.css
+│   ├── (auth)/
+│   │   ├── login/page.tsx
+│   │   └── register/page.tsx
+│   └── (chat)/
+│       ├── layout.tsx
+│       ├── conversations/page.tsx
+│       └── conversations/[id]/page.tsx
+├── components/
+│   ├── ui/          # Button, Input, Card
+│   ├── layout/      # Header, Sidebar
+│   └── features/    # ConversationList, ChatPane, MessageInput
+├── lib/
+│   ├── api.ts       # REST: auth, conversations, messages
+│   ├── ws.ts        # WebSocket connect, send, subscribe
+│   ├── auth.ts      # getToken, setToken, logout, refresh
+│   └── types.ts     # User, Conversation, Message
+├── hooks/
+│   ├── useAuth.ts
+│   ├── useConversation.ts
+│   └── useWebSocket.ts
+├── public/
+├── doc/             # Project-specific docs (README, deployment)
+├── scripts/         # build.sh, deploy.sh
+├── .env.local.example
+├── next.config.js
+├── tailwind.config.ts
+├── tsconfig.json
+└── package.json
 ```
 
 ---

@@ -420,38 +420,39 @@ type Message = {
 建议在项目根（如 `client/uim-react/` 或仓库根）下结构：
 
 ```
-app/
-  layout.tsx
-  page.tsx
-  globals.css
-  (auth)/
-    login/page.tsx
-    register/page.tsx
-  (chat)/
-    layout.tsx
-    conversations/page.tsx
-    conversations/[id]/page.tsx
-components/
-  ui/           # Button, Input, Card
-  layout/       # Header, Sidebar
-  features/     # ConversationList, ChatPane, MessageInput
-lib/
-  api.ts        # REST: auth, conversations, messages
-  ws.ts         # WebSocket 连接、发送、订阅
-  auth.ts       # getToken, setToken, logout, refresh
-  types.ts      # User, Conversation, Message
-hooks/
-  useAuth.ts
-  useConversation.ts
-  useWebSocket.ts
-public/
-doc/            # 项目文档（README、部署说明）
-scripts/        # build.sh, deploy.sh
-.env.local.example
-next.config.js
-tailwind.config.ts
-tsconfig.json
-package.json
+.
+├── app/
+│   ├── layout.tsx
+│   ├── page.tsx
+│   ├── globals.css
+│   ├── (auth)/
+│   │   ├── login/page.tsx
+│   │   └── register/page.tsx
+│   └── (chat)/
+│       ├── layout.tsx
+│       ├── conversations/page.tsx
+│       └── conversations/[id]/page.tsx
+├── components/
+│   ├── ui/          # Button, Input, Card
+│   ├── layout/      # Header, Sidebar
+│   └── features/    # ConversationList, ChatPane, MessageInput
+├── lib/
+│   ├── api.ts       # REST: auth, conversations, messages
+│   ├── ws.ts        # WebSocket 连接、发送、订阅
+│   ├── auth.ts      # getToken, setToken, logout, refresh
+│   └── types.ts     # User, Conversation, Message
+├── hooks/
+│   ├── useAuth.ts
+│   ├── useConversation.ts
+│   └── useWebSocket.ts
+├── public/
+├── doc/             # 项目文档（README、部署说明）
+├── scripts/         # build.sh, deploy.sh
+├── .env.local.example
+├── next.config.js
+├── tailwind.config.ts
+├── tsconfig.json
+└── package.json
 ```
 
 ---
