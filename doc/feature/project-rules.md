@@ -9,6 +9,7 @@
 | Table of Contents (doc/, to ####) | ✅      | 2025-03-27 |
 | Diagrams in doc/ use Mermaid      | ✅      | 2025-04-26 |
 | Directory tree format in doc/     | ✅      | 2025-04-26 |
+| Backend logging convention        | ✅      | 2026-02-04 |
 
 ---
 
@@ -27,6 +28,7 @@
   - [Table of Contents in documentation](#table-of-contents-in-documentation)
   - [Diagrams in doc/ use Mermaid](#diagrams-in-doc-use-mermaid)
   - [Directory tree format in doc/](#directory-tree-format-in-doc)
+  - [Backend logging convention](#backend-logging-convention)
   - [Related](#related)
 
 ---
@@ -94,6 +96,18 @@
 **Rule**: When showing directory or file tree structure in any doc under `doc/`, use a **tree-style format with lines**: `├──` for an item with siblings below, `└──` for the last item at that level, `│` for the vertical line from a parent. Root can be `.`. Do not use plain indentation-only trees.
 
 *(Backup of `doc-rules.mdc` – Directory tree.)*
+
+---
+
+## Backend logging convention
+
+**Rule**: Backend logs use a **tag prefix** so that HTTP、auth and DB logs are distinguishable and grep-friendly. Do not log secrets (passwords, tokens) or full request bodies.
+
+- **HTTP request**: `[HTTP] METHOD path status client_ip latency` (e.g. `[HTTP] POST /api/auth/login 200 192.168.1.1 12ms`). Implemented in `internal/middleware/logger.go`.
+- **Auth**: `[AUTH] action ...` (e.g. `[AUTH] login attempt username=alice`, `[AUTH] login success username=alice`, `[AUTH] login failed username=alice reason=invalid_credentials`). Implemented in `internal/api/auth_handler.go`.
+- **Database (GORM)**: Each GORM log line is prefixed with `[DB] ` (e.g. `[DB] [157.857ms] [rows:1] SELECT ...`). Implemented in `cmd/server/main.go` via custom writer for `logger.New`.
+
+Previously the database query log had no tag; it was just `[157.857ms] [rows:1] SELECT ...`, which did not match the convention. It is now wrapped so all DB output starts with `[DB] `.
 
 ---
 

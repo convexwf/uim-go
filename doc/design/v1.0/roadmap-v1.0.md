@@ -177,7 +177,7 @@ gantt
 - [x] Implement connection lifecycle management
 - [x] Add connection heartbeat mechanism (ping/pong; ~54s ping interval)
 - [x] Implement graceful connection closure
-- [ ] Add connection error handling and reconnection logic (reconnection is client-side; server handles disconnect/Unregister)
+- [x] Add connection error handling and reconnection logic (reconnection is client-side; server handles disconnect/Unregister)
 
 **Message Handling**
 
@@ -211,15 +211,15 @@ gantt
 - [x] Integration tests for messaging API and WebSocket (`tests/integration/messaging_test.go`)
 - [x] Feature documentation (`doc/feature/core-messaging.md`)
 
-**Web Client (Basic)** *(deferred for this phase; validated via integration tests)*
+**Web Client (Basic)**
 
-- [ ] Set up React project
-- [ ] Implement login/register UI
-- [ ] Implement conversation list UI
-- [ ] Implement chat interface
-- [ ] Implement WebSocket client connection
-- [ ] Add message sending/receiving UI
-- [ ] Add basic error handling and loading states
+- [x] Set up React project
+- [x] Implement login/register UI
+- [x] Implement conversation list UI
+- [x] Implement chat interface
+- [x] Implement WebSocket client connection
+- [x] Add message sending/receiving UI
+- [x] Add basic error handling and loading states
 
 **Deliverables**
 
@@ -228,7 +228,7 @@ gantt
 - ✅ Message history retrieval (`GET /api/conversations/:id/messages`, cursor pagination)
 - ✅ Message persistence (PostgreSQL)
 - ✅ Unit and integration tests for messaging; feature doc `doc/feature/core-messaging.md`
-- ⏸️ Basic web client *(deferred; validated via integration tests)*
+- ✅ Basic web client
 
 **Estimated Effort**: 100 hours
 

@@ -4,7 +4,7 @@
 // File: main.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-04-12
+// Last modified: 2025-04-28
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,9 +24,11 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/convexwf/uim-go/internal/api"
 	"github.com/convexwf/uim-go/internal/config"
@@ -90,6 +92,20 @@ func main() {
 	}
 }
 
+// dbLogWriter prefixes each log line with [DB] for consistent log format.
+type dbLogWriter struct {
+	w      io.Writer
+	prefix string
+}
+
+func (d *dbLogWriter) Write(p []byte) (n int, err error) {
+	if len(p) == 0 {
+		return 0, nil
+	}
+	_, err = d.w.Write(append([]byte(d.prefix), p...))
+	return len(p), err
+}
+
 // initDatabase initializes the PostgreSQL database connection.
 func initDatabase(cfg *config.Config) (*gorm.DB, error) {
 	var logLevel logger.LogLevel
@@ -102,8 +118,18 @@ func initDatabase(cfg *config.Config) (*gorm.DB, error) {
 		logLevel = logger.Error
 	}
 
+	dbLogger := logger.New(
+		log.New(&dbLogWriter{w: os.Stdout, prefix: "[DB] "}, "", log.LstdFlags),
+		logger.Config{
+			SlowThreshold:             200 * time.Millisecond,
+			LogLevel:                  logLevel,
+			IgnoreRecordNotFoundError: true,
+			Colorful:                  false,
+		},
+	)
+
 	db, err := gorm.Open(postgres.Open(cfg.Database.DSN()), &gorm.Config{
-		Logger: logger.Default.LogMode(logLevel),
+		Logger: dbLogger,
 	})
 	if err != nil {
 		return nil, err

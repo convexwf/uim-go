@@ -76,7 +76,7 @@ docker-build:
 	@echo "Docker image built: $(DOCKER_IMAGE)"
 
 # Start Docker services (PostgreSQL + Redis + UIM Server)
-docker-up:
+docker-up: docker-build
 	@echo "Starting Docker services..."
 	@docker-compose up -d
 	@echo "Docker services started (postgres, redis, uim-server)"

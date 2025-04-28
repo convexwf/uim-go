@@ -4,7 +4,7 @@
 // File: auth_handler.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-13
+// Last modified: 2025-04-28
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -85,22 +86,28 @@ type AuthResponse struct {
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[AUTH] register invalid request: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	log.Printf("[AUTH] register attempt username=%s", req.Username)
 
 	user, accessToken, refreshToken, err := h.authService.Register(req.Username, req.Email, req.Password)
 	if err != nil {
 		switch err {
 		case service.ErrUserExists:
+			log.Printf("[AUTH] register failed username=%s reason=user_exists", req.Username)
 			c.JSON(http.StatusConflict, gin.H{"error": "user already exists"})
 		case service.ErrInvalidInput:
+			log.Printf("[AUTH] register failed username=%s reason=invalid_input %v", req.Username, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		default:
+			log.Printf("[AUTH] register failed username=%s reason=internal %v", req.Username, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 		return
 	}
+	log.Printf("[AUTH] register success username=%s", req.Username)
 
 	c.JSON(http.StatusCreated, AuthResponse{
 		User:         user,
@@ -126,20 +133,25 @@ func (h *AuthHandler) Register(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[AUTH] login invalid request: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	log.Printf("[AUTH] login attempt username=%s", req.Username)
 
 	user, accessToken, refreshToken, err := h.authService.Login(req.Username, req.Password)
 	if err != nil {
 		switch err {
 		case service.ErrInvalidCredentials:
+			log.Printf("[AUTH] login failed username=%s reason=invalid_credentials", req.Username)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		default:
+			log.Printf("[AUTH] login failed username=%s reason=internal %v", req.Username, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 		return
 	}
+	log.Printf("[AUTH] login success username=%s", req.Username)
 
 	c.JSON(http.StatusOK, AuthResponse{
 		User:         user,
@@ -164,15 +176,19 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[AUTH] refresh invalid request: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	log.Printf("[AUTH] refresh attempt")
 
 	accessToken, refreshToken, err := h.authService.RefreshToken(req.RefreshToken)
 	if err != nil {
+		log.Printf("[AUTH] refresh failed reason=invalid_token")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
 		return
 	}
+	log.Printf("[AUTH] refresh success")
 
 	c.JSON(http.StatusOK, gin.H{
 		"access_token":  accessToken,

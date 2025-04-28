@@ -4,7 +4,7 @@
 // File: logger.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-13
+// Last modified: 2025-04-28
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,6 +65,7 @@ func LoggerMiddlewareSimple() gin.HandlerFunc {
 		c.Next()
 
 		latency := time.Since(start)
-		log.Printf("[%s] %s %s - %v", method, path, c.ClientIP(), latency)
+		status := c.Writer.Status()
+		log.Printf("[HTTP] %s %s %d %s %v", method, path, status, c.ClientIP(), latency)
 	}
 }
