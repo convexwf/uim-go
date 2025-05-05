@@ -10,6 +10,8 @@
 | Diagrams in doc/ use Mermaid      | ✅      | 2025-04-26 |
 | Directory tree format in doc/     | ✅      | 2025-04-26 |
 | Backend logging convention        | ✅      | 2026-02-04 |
+| Design choice docs use full tables | ✅      | 2026-02-24 |
+| Plan implementation → practice doc | ✅      | 2026-02-24 |
 
 ---
 
@@ -29,6 +31,8 @@
   - [Diagrams in doc/ use Mermaid](#diagrams-in-doc-use-mermaid)
   - [Directory tree format in doc/](#directory-tree-format-in-doc)
   - [Backend logging convention](#backend-logging-convention)
+  - [Design choice docs use full tables](#design-choice-docs-use-full-tables)
+  - [Plan implementation → practice document](#plan-implementation--practice-document)
   - [Related](#related)
 
 ---
@@ -108,6 +112,22 @@
 - **Database (GORM)**: Each GORM log line is prefixed with `[DB] ` (e.g. `[DB] [157.857ms] [rows:1] SELECT ...`). Implemented in `cmd/server/main.go` via custom writer for `logger.New`.
 
 Previously the database query log had no tag; it was just `[157.857ms] [rows:1] SELECT ...`, which did not match the convention. It is now wrapped so all DB output starts with `[DB] `.
+
+---
+
+## Design choice docs use full tables
+
+**Rule**: Any document that records technology or design choices (方案选型) must use **complete comparison tables** for each decision. For every option considered (not only the chosen one), the table must include at least: option name, brief description, pros (优点), cons (缺点). A column for chosen/recommended (选用或推荐) may be included. Do not describe non-chosen options only in a short “未选方案简述” paragraph; all options must appear in the same table with full pros and cons. After the table, a short “选定方案” and “选用理由” section is acceptable.
+
+*(Backup of `doc-rules.mdc` – Design / technology choice documents.)*
+
+---
+
+## Plan implementation → practice document
+
+**Rule**: After implementing a plan (when the build succeeds), produce a **concrete practice document** for that implementation. Place it under the relevant project doc directory (e.g. `client/uim-flutter/doc/` for the Flutter app). The document must: (1) record **only successful practices** (do not document failed attempts); (2) include **commonly used commands** (e.g. build, analyze, run, codegen). Update the same doc as later phases add more practices, so it stays a single, actionable reference for future work and onboarding.
+
+*(Backup of `project-rules.mdc` – Plan implementation output.)*
 
 ---
 
