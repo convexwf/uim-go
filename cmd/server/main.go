@@ -4,7 +4,7 @@
 // File: main.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-04-28
+// Last modified: 2025-05-07
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -75,7 +75,7 @@ func main() {
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, jwtManager)
-	convSvc := service.NewConversationService(convRepo, userRepo)
+	convSvc := service.NewConversationService(convRepo, userRepo, msgRepo)
 	hub := websocket.NewHub(convRepo)
 	msgSvc := service.NewMessageService(msgRepo, convSvc, hub)
 	router := api.SetupRouter(db, authService, jwtManager, convSvc, msgSvc, hub)

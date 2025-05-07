@@ -4,7 +4,7 @@
 // File: auth_service_test.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-13
+// Last modified: 2025-05-07
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -67,6 +67,19 @@ func (m *mockUserRepository) GetByID(userID uuid.UUID) (*model.User, error) {
 		return nil, errors.New("user not found")
 	}
 	return user, nil
+}
+
+func (m *mockUserRepository) GetByIDs(userIDs []uuid.UUID) ([]*model.User, error) {
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+	var out []*model.User
+	for _, id := range userIDs {
+		if u, ok := m.users[id]; ok {
+			out = append(out, u)
+		}
+	}
+	return out, nil
 }
 
 func (m *mockUserRepository) GetByUsername(username string) (*model.User, error) {

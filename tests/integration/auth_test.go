@@ -44,7 +44,7 @@ func TestAuthEndpoints_RegisterLoginRefresh(t *testing.T) {
 	convRepo := repository.NewConversationRepository(db)
 	msgRepo := repository.NewMessageRepository(db)
 	authSvc := service.NewAuthService(userRepo, jwtMgr)
-	convSvc := service.NewConversationService(convRepo, userRepo)
+	convSvc := service.NewConversationService(convRepo, userRepo, msgRepo)
 	hub := websocket.NewHub(convRepo)
 	msgSvc := service.NewMessageService(msgRepo, convSvc, hub)
 	router := api.SetupRouter(db, authSvc, jwtMgr, convSvc, msgSvc, hub)

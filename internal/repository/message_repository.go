@@ -25,6 +25,7 @@ type MessageRepository interface {
 	Create(msg *model.Message) error
 	ListByConversationID(conversationID uuid.UUID, limit, offset int, beforeID *int64) ([]*model.Message, error)
 	GetByID(messageID int64) (*model.Message, error)
+	GetLastMessagesByConversationIDs(conversationIDs []uuid.UUID) (map[uuid.UUID]*model.Message, error)
 }
 
 type messageRepository struct {
@@ -70,4 +71,30 @@ func (r *messageRepository) GetByID(messageID int64) (*model.Message, error) {
 		return nil, err
 	}
 	return &msg, nil
+}
+
+// GetLastMessagesByConversationIDs returns the latest message per conversation.
+// Uses a subquery to get the max message_id per conversation, then fetches those messages.
+func (r *messageRepository) GetLastMessagesByConversationIDs(conversationIDs []uuid.UUID) (map[uuid.UUID]*model.Message, error) {
+	if len(conversationIDs) == 0 {
+		return map[uuid.UUID]*model.Message{}, nil
+	}
+	// Subquery: for each conversation_id, get the max(message_id). Then join back to get full row.
+	var msgs []*model.Message
+	err := r.db.Table("messages").
+		Select("messages.*").
+		Joins("INNER JOIN (?) AS last ON messages.conversation_id = last.conversation_id AND messages.message_id = last.max_id",
+			r.db.Table("messages").
+				Select("conversation_id, MAX(message_id) AS max_id").
+				Where("conversation_id IN ?", conversationIDs).
+				Group("conversation_id")).
+		Find(&msgs).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[uuid.UUID]*model.Message, len(msgs))
+	for _, m := range msgs {
+		out[m.ConversationID] = m
+	}
+	return out, nil
 }

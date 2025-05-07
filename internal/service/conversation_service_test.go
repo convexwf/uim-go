@@ -58,6 +58,26 @@ func (m *mockConversationRepo) IsParticipant(conversationID, userID uuid.UUID) (
 func (m *mockConversationRepo) GetParticipantUserIDs(conversationID uuid.UUID) ([]uuid.UUID, error) {
 	return m.getParticipantIDs, m.getParticipantIDsErr
 }
+func (m *mockConversationRepo) UpdateParticipantLastRead(conversationID, userID uuid.UUID, lastReadMessageID int64) error {
+	return nil
+}
+func (m *mockConversationRepo) GetUnreadCounts(userID uuid.UUID, conversationIDs []uuid.UUID) (map[uuid.UUID]int, error) {
+	return nil, nil
+}
+func (m *mockConversationRepo) GetOtherParticipantUserIDsForOneOnOne(currentUserID uuid.UUID, conversationIDs []uuid.UUID) (map[uuid.UUID]uuid.UUID, error) {
+	return nil, nil
+}
+
+type mockMessageRepoForConv struct{}
+
+func (m *mockMessageRepoForConv) Create(msg *model.Message) error { return nil }
+func (m *mockMessageRepoForConv) ListByConversationID(conversationID uuid.UUID, limit, offset int, beforeID *int64) ([]*model.Message, error) {
+	return nil, nil
+}
+func (m *mockMessageRepoForConv) GetByID(messageID int64) (*model.Message, error) { return nil, nil }
+func (m *mockMessageRepoForConv) GetLastMessagesByConversationIDs(conversationIDs []uuid.UUID) (map[uuid.UUID]*model.Message, error) {
+	return nil, nil
+}
 
 type mockUserRepo struct {
 	getByIDUser *model.User
@@ -68,6 +88,7 @@ func (m *mockUserRepo) Create(user *model.User) error { return nil }
 func (m *mockUserRepo) GetByID(userID uuid.UUID) (*model.User, error) {
 	return m.getByIDUser, m.getByIDErr
 }
+func (m *mockUserRepo) GetByIDs(userIDs []uuid.UUID) ([]*model.User, error) { return nil, nil }
 func (m *mockUserRepo) GetByUsername(username string) (*model.User, error) { return nil, nil }
 func (m *mockUserRepo) GetByEmail(email string) (*model.User, error)       { return nil, nil }
 func (m *mockUserRepo) Update(user *model.User) error                       { return nil }
@@ -77,7 +98,8 @@ func TestConversationService_CreateOneOnOne_SameUser(t *testing.T) {
 	uid := uuid.MustParse("b0000000-0000-0000-0000-000000000001")
 	convRepo := &mockConversationRepo{}
 	userRepo := &mockUserRepo{}
-	svc := NewConversationService(convRepo, userRepo)
+	msgRepo := &mockMessageRepoForConv{}
+	svc := NewConversationService(convRepo, userRepo, msgRepo)
 	_, err := svc.CreateOneOnOne(uid, uid)
 	if err == nil {
 		t.Fatal("expected error for same user")
@@ -92,7 +114,8 @@ func TestConversationService_CreateOneOnOne_OtherUserNotFound(t *testing.T) {
 	other := uuid.MustParse("b0000000-0000-0000-0000-000000000002")
 	convRepo := &mockConversationRepo{}
 	userRepo := &mockUserRepo{getByIDErr: errors.New("not found")}
-	svc := NewConversationService(convRepo, userRepo)
+	msgRepo := &mockMessageRepoForConv{}
+	svc := NewConversationService(convRepo, userRepo, msgRepo)
 	_, err := svc.CreateOneOnOne(creator, other)
 	if err == nil {
 		t.Fatal("expected error when other user not found")
@@ -111,7 +134,8 @@ func TestConversationService_CreateOneOnOne_Existing(t *testing.T) {
 		findOneOnOneErr:  nil,
 	}
 	userRepo := &mockUserRepo{getByIDUser: &model.User{UserID: other}}
-	svc := NewConversationService(convRepo, userRepo)
+	msgRepo := &mockMessageRepoForConv{}
+	svc := NewConversationService(convRepo, userRepo, msgRepo)
 	conv, err := svc.CreateOneOnOne(creator, other)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -128,7 +152,8 @@ func TestConversationService_CreateOneOnOne_New(t *testing.T) {
 		findOneOnOneErr: errors.New("not found"),
 	}
 	userRepo := &mockUserRepo{getByIDUser: &model.User{UserID: other}}
-	svc := NewConversationService(convRepo, userRepo)
+	msgRepo := &mockMessageRepoForConv{}
+	svc := NewConversationService(convRepo, userRepo, msgRepo)
 	conv, err := svc.CreateOneOnOne(creator, other)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -146,7 +171,8 @@ func TestConversationService_GetByID_NotParticipant(t *testing.T) {
 	userID := uuid.MustParse("b0000000-0000-0000-0000-000000000001")
 	convRepo := &mockConversationRepo{isParticipant: false}
 	userRepo := &mockUserRepo{}
-	svc := NewConversationService(convRepo, userRepo)
+	msgRepo := &mockMessageRepoForConv{}
+	svc := NewConversationService(convRepo, userRepo, msgRepo)
 	_, err := svc.GetByID(convID, userID)
 	if err == nil {
 		t.Fatal("expected error when not participant")
@@ -162,7 +188,8 @@ func TestConversationService_GetByID_Success(t *testing.T) {
 	expected := &model.Conversation{ConversationID: convID, Type: model.ConversationTypeOneOnOne}
 	convRepo := &mockConversationRepo{isParticipant: true, getByIDConv: expected}
 	userRepo := &mockUserRepo{}
-	svc := NewConversationService(convRepo, userRepo)
+	msgRepo := &mockMessageRepoForConv{}
+	svc := NewConversationService(convRepo, userRepo, msgRepo)
 	conv, err := svc.GetByID(convID, userID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -179,7 +206,8 @@ func TestConversationService_ListByUserID(t *testing.T) {
 	}
 	convRepo := &mockConversationRepo{listConvs: list}
 	userRepo := &mockUserRepo{}
-	svc := NewConversationService(convRepo, userRepo)
+	msgRepo := &mockMessageRepoForConv{}
+	svc := NewConversationService(convRepo, userRepo, msgRepo)
 	convs, err := svc.ListByUserID(userID, 20, 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -189,6 +217,36 @@ func TestConversationService_ListByUserID(t *testing.T) {
 	}
 }
 
-// Ensure mockConversationRepo implements repository.ConversationRepository
+func TestConversationService_MarkRead_NotParticipant(t *testing.T) {
+	convID := uuid.MustParse("c0000000-0000-0000-0000-000000000001")
+	userID := uuid.MustParse("b0000000-0000-0000-0000-000000000001")
+	convRepo := &mockConversationRepo{isParticipant: false}
+	userRepo := &mockUserRepo{}
+	msgRepo := &mockMessageRepoForConv{}
+	svc := NewConversationService(convRepo, userRepo, msgRepo)
+	err := svc.MarkRead(convID, userID, 10)
+	if err == nil {
+		t.Fatal("expected error when not participant")
+	}
+	if !errors.Is(err, ErrNotParticipant) {
+		t.Errorf("expected ErrNotParticipant, got %v", err)
+	}
+}
+
+func TestConversationService_MarkRead_Success(t *testing.T) {
+	convID := uuid.MustParse("c0000000-0000-0000-0000-000000000001")
+	userID := uuid.MustParse("b0000000-0000-0000-0000-000000000001")
+	convRepo := &mockConversationRepo{isParticipant: true}
+	userRepo := &mockUserRepo{}
+	msgRepo := &mockMessageRepoForConv{}
+	svc := NewConversationService(convRepo, userRepo, msgRepo)
+	err := svc.MarkRead(convID, userID, 10)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// Ensure mocks implement repository interfaces
 var _ repository.ConversationRepository = (*mockConversationRepo)(nil)
 var _ repository.UserRepository = (*mockUserRepo)(nil)
+var _ repository.MessageRepository = (*mockMessageRepoForConv)(nil)

@@ -42,7 +42,7 @@ func setupMessagingRouter(t *testing.T) (http.Handler, string) {
 	convRepo := repository.NewConversationRepository(db)
 	msgRepo := repository.NewMessageRepository(db)
 	authSvc := service.NewAuthService(userRepo, jwtMgr)
-	convSvc := service.NewConversationService(convRepo, userRepo)
+	convSvc := service.NewConversationService(convRepo, userRepo, msgRepo)
 	hub := websocket.NewHub(convRepo)
 	msgSvc := service.NewMessageService(msgRepo, convSvc, hub)
 	router := api.SetupRouter(db, authSvc, jwtMgr, convSvc, msgSvc, hub)
@@ -143,6 +143,53 @@ func TestConversationCreateAndList(t *testing.T) {
 	}
 	if len(listResp.Conversations) < 1 {
 		t.Fatalf("expected at least one conversation, got %d", len(listResp.Conversations))
+	}
+	// List response includes metadata (other_user, last_message, unread_count)
+	first := listResp.Conversations[0]
+	if _, ok := first["unread_count"]; !ok {
+		t.Error("expected conversation list item to include unread_count")
+	}
+	if _, ok := first["other_user"]; !ok {
+		t.Error("expected 1:1 conversation list item to include other_user")
+	}
+}
+
+func TestMarkRead(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping messaging integration test in short mode")
+	}
+	router, token := setupMessagingRouter(t)
+	bobID := getBobUserID(t, router)
+	if bobID == "" {
+		t.Skip("could not get bob user_id")
+	}
+	// Create conversation
+	createBody := map[string]string{"other_user_id": bobID}
+	createJSON, _ := json.Marshal(createBody)
+	req := httptest.NewRequest(http.MethodPost, "/api/conversations", bytes.NewReader(createJSON))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("create conversation: status %d, body %s", w.Code, w.Body.String())
+	}
+	var conv map[string]interface{}
+	_ = json.NewDecoder(w.Body).Decode(&conv)
+	convID, _ := conv["conversation_id"].(string)
+	if convID == "" {
+		t.Fatal("missing conversation_id")
+	}
+	// Mark read
+	readBody := map[string]int64{"last_read_message_id": 0}
+	readJSON, _ := json.Marshal(readBody)
+	reqRead := httptest.NewRequest(http.MethodPost, "/api/conversations/"+convID+"/read", bytes.NewReader(readJSON))
+	reqRead.Header.Set("Content-Type", "application/json")
+	reqRead.Header.Set("Authorization", "Bearer "+token)
+	wRead := httptest.NewRecorder()
+	router.ServeHTTP(wRead, reqRead)
+	if wRead.Code != http.StatusNoContent {
+		t.Fatalf("mark read: expected 204, got %d, body %s", wRead.Code, wRead.Body.String())
 	}
 }
 

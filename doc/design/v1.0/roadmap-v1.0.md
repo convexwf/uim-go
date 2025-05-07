@@ -10,34 +10,36 @@
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Roadmap Summary](#roadmap-summary)
-- [Phase 1: MVP (Minimum Viable Product) - 6 weeks](#phase-1-mvp-minimum-viable-product---6-weeks)
-  - [Week 1-2: Foundation](#week-1-2-foundation)
-    - [Phase 1: Foundation - Tasks](#phase-1-foundation---tasks)
-  - [Week 3-4: Core Messaging](#week-3-4-core-messaging)
-    - [Phase 2: Core Messaging - Tasks](#phase-2-core-messaging---tasks)
-  - [Week 5-6: Reliability & Polish](#week-5-6-reliability--polish)
-    - [Phase 3: Reliability & Polish - Tasks](#phase-3-reliability--polish---tasks)
-- [Phase 2: Group Chat & Features - 4 weeks](#phase-2-group-chat--features---4-weeks)
-  - [Week 7-8: Group Chat](#week-7-8-group-chat)
-    - [Phase 4: Group Chat - Tasks](#phase-4-group-chat---tasks)
-  - [Week 9-10: Features & Optimization](#week-9-10-features--optimization)
-    - [Phase 5: Features & Optimization - Tasks](#phase-5-features--optimization---tasks)
-- [Phase 3: Production Readiness - 2 weeks](#phase-3-production-readiness---2-weeks)
-  - [Week 11-12: Production Features](#week-11-12-production-features)
-    - [Phase 6: Production Features - Tasks](#phase-6-production-features---tasks)
-- [Overall Timeline](#overall-timeline)
-- [Risk Management](#risk-management)
-  - [Technical Risks](#technical-risks)
-  - [Schedule Risks](#schedule-risks)
-  - [Resource Risks](#resource-risks)
-- [Success Metrics](#success-metrics)
-  - [Phase 1 Success Metrics](#phase-1-success-metrics)
-  - [Phase 2 Success Metrics](#phase-2-success-metrics)
-  - [Phase 3 Success Metrics](#phase-3-success-metrics)
-- [Future Versions](#future-versions)
-- [References](#references)
+- [UIM System Development Roadmap - v1.0](#uim-system-development-roadmap---v10)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Roadmap Summary](#roadmap-summary)
+  - [Phase 1: MVP (Minimum Viable Product) - 6 weeks](#phase-1-mvp-minimum-viable-product---6-weeks)
+    - [Week 1-2: Foundation](#week-1-2-foundation)
+      - [Phase 1: Foundation - Tasks](#phase-1-foundation---tasks)
+    - [Week 3-4: Core Messaging](#week-3-4-core-messaging)
+      - [Phase 2: Core Messaging - Tasks](#phase-2-core-messaging---tasks)
+    - [Week 5-6: Reliability \& Polish](#week-5-6-reliability--polish)
+      - [Phase 3: Reliability \& Polish - Tasks](#phase-3-reliability--polish---tasks)
+  - [Phase 2: Group Chat \& Features - 4 weeks](#phase-2-group-chat--features---4-weeks)
+    - [Week 7-8: Group Chat](#week-7-8-group-chat)
+      - [Phase 4: Group Chat - Tasks](#phase-4-group-chat---tasks)
+    - [Week 9-10: Features \& Optimization](#week-9-10-features--optimization)
+      - [Phase 5: Features \& Optimization - Tasks](#phase-5-features--optimization---tasks)
+  - [Phase 3: Production Readiness - 2 weeks](#phase-3-production-readiness---2-weeks)
+    - [Week 11-12: Production Features](#week-11-12-production-features)
+      - [Phase 6: Production Features - Tasks](#phase-6-production-features---tasks)
+  - [Overall Timeline](#overall-timeline)
+  - [Risk Management](#risk-management)
+    - [Technical Risks](#technical-risks)
+    - [Schedule Risks](#schedule-risks)
+    - [Resource Risks](#resource-risks)
+  - [Success Metrics](#success-metrics)
+    - [Phase 1 Success Metrics](#phase-1-success-metrics)
+    - [Phase 2 Success Metrics](#phase-2-success-metrics)
+    - [Phase 3 Success Metrics](#phase-3-success-metrics)
+  - [Future Versions](#future-versions)
+  - [References](#references)
 
 ---
 
@@ -186,7 +188,6 @@ gantt
 - [x] Implement message receive handler (hub broadcasts to conversation participants)
 - [x] Add message validation (content length, format; 64KB max, trim)
 - [x] Implement rate limiting (60 messages/minute per connection)
-- [ ] Add message delivery acknowledgments (sent, delivered) *(deferred)*
 
 **Message Persistence**
 
@@ -202,8 +203,7 @@ gantt
 - [x] Implement conversation creation (one-on-one)
 - [x] Implement conversation list API (`GET /api/conversations`)
 - [x] Add conversation participants management (CreateOneOnOne adds both; GetParticipantUserIDs for hub)
-- [ ] Implement conversation metadata (last message, unread count) *(deferred)*
-- [ ] Add conversation search/filter *(deferred)*
+- [x] Implement conversation metadata (last message, unread count)
 
 **Testing & Documentation**
 
@@ -377,6 +377,10 @@ gantt
 - Optimize performance
 
 #### Phase 5: Features & Optimization - Tasks
+
+**From Phase 2**:
+- [ ] Add message delivery acknowledgments (sent, delivered)
+- [ ] Add conversation search/filter
 
 **Message Search**:
 - [ ] Implement message search API (`GET /api/conversations/:id/messages/search`)

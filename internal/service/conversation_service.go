@@ -29,24 +29,36 @@ var (
 	ErrInvalidConversation  = errors.New("invalid conversation")
 )
 
+// ConversationWithMeta holds a conversation and its list metadata (last message, unread count, other user for 1:1).
+type ConversationWithMeta struct {
+	Conv        *model.Conversation
+	LastMessage *model.Message
+	UnreadCount int
+	OtherUser   *model.User
+}
+
 // ConversationService defines conversation operations.
 type ConversationService interface {
 	CreateOneOnOne(creatorID, otherUserID uuid.UUID) (*model.Conversation, error)
 	GetByID(conversationID, userID uuid.UUID) (*model.Conversation, error)
 	ListByUserID(userID uuid.UUID, limit, offset int) ([]*model.Conversation, error)
+	ListByUserIDWithMeta(userID uuid.UUID, limit, offset int) ([]*ConversationWithMeta, error)
 	EnsureUserInConversation(conversationID, userID uuid.UUID) error
+	MarkRead(conversationID, userID uuid.UUID, lastReadMessageID int64) error
 }
 
 type conversationService struct {
-	convRepo   repository.ConversationRepository
-	userRepo   repository.UserRepository
+	convRepo repository.ConversationRepository
+	userRepo repository.UserRepository
+	msgRepo  repository.MessageRepository
 }
 
 // NewConversationService creates a new conversation service.
-func NewConversationService(convRepo repository.ConversationRepository, userRepo repository.UserRepository) ConversationService {
+func NewConversationService(convRepo repository.ConversationRepository, userRepo repository.UserRepository, msgRepo repository.MessageRepository) ConversationService {
 	return &conversationService{
 		convRepo: convRepo,
 		userRepo: userRepo,
+		msgRepo:  msgRepo,
 	}
 }
 
@@ -99,6 +111,59 @@ func (s *conversationService) ListByUserID(userID uuid.UUID, limit, offset int) 
 	return s.convRepo.ListByUserID(userID, limit, offset)
 }
 
+// ListByUserIDWithMeta lists conversations with last_message, unread_count, and other_user (for 1:1).
+func (s *conversationService) ListByUserIDWithMeta(userID uuid.UUID, limit, offset int) ([]*ConversationWithMeta, error) {
+	convs, err := s.convRepo.ListByUserID(userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	if len(convs) == 0 {
+		return []*ConversationWithMeta{}, nil
+	}
+	convIDs := make([]uuid.UUID, len(convs))
+	for i, c := range convs {
+		convIDs[i] = c.ConversationID
+	}
+	lastMsgs, err := s.msgRepo.GetLastMessagesByConversationIDs(convIDs)
+	if err != nil {
+		return nil, err
+	}
+	unreadCounts, err := s.convRepo.GetUnreadCounts(userID, convIDs)
+	if err != nil {
+		return nil, err
+	}
+	otherUserIDs, err := s.convRepo.GetOtherParticipantUserIDsForOneOnOne(userID, convIDs)
+	if err != nil {
+		return nil, err
+	}
+	var userIDs []uuid.UUID
+	for _, uid := range otherUserIDs {
+		userIDs = append(userIDs, uid)
+	}
+	var users []*model.User
+	if len(userIDs) > 0 {
+		users, err = s.userRepo.GetByIDs(userIDs)
+		if err != nil {
+			return nil, err
+		}
+	}
+	userByID := make(map[uuid.UUID]*model.User)
+	for _, u := range users {
+		userByID[u.UserID] = u
+	}
+	out := make([]*ConversationWithMeta, len(convs))
+	for i, conv := range convs {
+		meta := &ConversationWithMeta{Conv: conv}
+		meta.LastMessage = lastMsgs[conv.ConversationID]
+		meta.UnreadCount = unreadCounts[conv.ConversationID]
+		if uid, ok := otherUserIDs[conv.ConversationID]; ok {
+			meta.OtherUser = userByID[uid]
+		}
+		out[i] = meta
+	}
+	return out, nil
+}
+
 // EnsureUserInConversation returns nil only if the user is a participant (for access control).
 func (s *conversationService) EnsureUserInConversation(conversationID, userID uuid.UUID) error {
 	ok, err := s.convRepo.IsParticipant(conversationID, userID)
@@ -109,4 +174,16 @@ func (s *conversationService) EnsureUserInConversation(conversationID, userID uu
 		return ErrNotParticipant
 	}
 	return nil
+}
+
+// MarkRead updates the participant's last_read_message_id for the conversation.
+func (s *conversationService) MarkRead(conversationID, userID uuid.UUID, lastReadMessageID int64) error {
+	ok, err := s.convRepo.IsParticipant(conversationID, userID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrNotParticipant
+	}
+	return s.convRepo.UpdateParticipantLastRead(conversationID, userID, lastReadMessageID)
 }

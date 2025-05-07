@@ -4,7 +4,7 @@
 // File: user_repository.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-13
+// Last modified: 2025-05-07
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import (
 type UserRepository interface {
 	Create(user *model.User) error
 	GetByID(userID uuid.UUID) (*model.User, error)
+	GetByIDs(userIDs []uuid.UUID) ([]*model.User, error)
 	GetByUsername(username string) (*model.User, error)
 	GetByEmail(email string) (*model.User, error)
 	Update(user *model.User) error
@@ -61,6 +62,19 @@ func (r *userRepository) GetByID(userID uuid.UUID) (*model.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+// GetByIDs retrieves users by their IDs. Returns nil slice if no IDs given.
+func (r *userRepository) GetByIDs(userIDs []uuid.UUID) ([]*model.User, error) {
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+	var users []*model.User
+	err := r.db.Where("user_id IN ?", userIDs).Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
 }
 
 // GetByUsername retrieves a user by their username.

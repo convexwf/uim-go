@@ -14,6 +14,8 @@
 - [Overview](#overview)
 - [Backend Architecture](#backend-architecture)
 - [HTTP API Endpoints](#http-api-endpoints)
+  - [Conversation list response (with metadata)](#conversation-list-response-with-metadata)
+  - [Mark read endpoint](#mark-read-endpoint)
 - [WebSocket](#websocket)
   - [JSON Protocol](#json-protocol)
 - [WebSocket Hub & Handler](#websocket-hub--handler)
@@ -37,9 +39,10 @@ Core messaging provides **one-on-one conversations** and **text messages** with 
 | **HTTP API** | `internal/api/conversation_handler.go`, `message_handler.go` |
 | **WebSocket** | `internal/websocket/hub.go`, `internal/api/websocket_handler.go` |
 
-- **ConversationRepository**: Create, GetByID, ListByUserID, AddParticipant, FindOneOnOneBetween, IsParticipant, GetParticipantUserIDs.
-- **MessageRepository**: Create, ListByConversationID (pagination, optional before_id), GetByID.
-- **ConversationService**: CreateOneOnOne (reuse existing or create new), GetByID / ListByUserID (access control), EnsureUserInConversation.
+- **ConversationRepository**: Create, GetByID, ListByUserID, AddParticipant, FindOneOnOneBetween, IsParticipant, GetParticipantUserIDs, UpdateParticipantLastRead, GetUnreadCounts, GetOtherParticipantUserIDsForOneOnOne.
+- **MessageRepository**: Create, ListByConversationID (pagination, optional before_id), GetByID, GetLastMessagesByConversationIDs.
+- **UserRepository**: GetByIDs (batch) used by conversation list with meta.
+- **ConversationService**: CreateOneOnOne (reuse existing or create new), GetByID / ListByUserID / ListByUserIDWithMeta (access control, list with other_user/last_message/unread_count), MarkRead, EnsureUserInConversation.
 - **MessageService**: Create (validation, persistence, optional broadcast via `MessageNotifier`), ListByConversationID (participant check). The **WebSocket hub** implements `MessageNotifier` and broadcasts `new_message` to conversation participants.
 
 ---
@@ -51,10 +54,24 @@ All messaging endpoints require **JWT** via `Authorization: Bearer <access_token
 | Method | Path | Description |
 | ------ | ---- | ----------- |
 | POST | `/api/conversations` | Create or return existing 1:1 conversation. Body: `{ "other_user_id": "<uuid>" }`. |
-| GET | `/api/conversations` | List current user's conversations. Query: `limit`, `offset` (default 20, 0). |
+| GET | `/api/conversations` | List current user's conversations with metadata. Query: `limit`, `offset` (default 20, 0). Response includes `other_user`, `last_message`, `unread_count` per conversation. See [Conversation list response](#conversation-list-response-with-metadata). |
+| POST | `/api/conversations/:id/read` | Update current user's last read message in the conversation. Body: `{ "last_read_message_id": <int64> }`. See [Mark read endpoint](#mark-read-endpoint). |
 | GET | `/api/conversations/:id/messages` | List messages in a conversation (participant only). Query: `limit`, `offset`, optional `before_id` (cursor). |
 
 Errors: 401 (missing/invalid token), 403 (not participant), 404 (user/conversation not found), 400 (invalid input).
+
+#### Conversation list response (with metadata)
+
+Each item in `GET /api/conversations` response `conversations` array includes:
+
+- **Standard fields**: `conversation_id`, `type`, `name`, `created_by`, `created_at`, `updated_at`.
+- **other_user** (optional): For 1:1 conversations only. Object with `user_id`, `username`, `display_name`, `avatar_url` of the other participant.
+- **last_message** (optional): Object with `message_id`, `content`, `sender_id`, `created_at` of the latest message in the conversation. Omitted if there are no messages.
+- **unread_count**: Number of messages in the conversation that the current user has not read (messages from others with `message_id` greater than the user's `last_read_message_id` for this conversation).
+
+#### Mark read endpoint
+
+`POST /api/conversations/:id/read` updates `conversation_participants.last_read_message_id` for the authenticated user in the given conversation. Request body must include `last_read_message_id` (integer). Returns 204 No Content on success. Requires the user to be a participant (403 otherwise).
 
 ---
 

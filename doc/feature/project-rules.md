@@ -12,6 +12,8 @@
 | Backend logging convention        | ✅      | 2026-02-04 |
 | Design choice docs use full tables | ✅      | 2026-02-24 |
 | Plan implementation → practice doc | ✅      | 2026-02-24 |
+| Cursor plan documents use Chinese  | ✅      | 2026-03-02 |
+| Plans that touch repo need commit messages | ✅ | 2026-03-02 |
 
 ---
 
@@ -33,6 +35,8 @@
   - [Backend logging convention](#backend-logging-convention)
   - [Design choice docs use full tables](#design-choice-docs-use-full-tables)
   - [Plan implementation → practice document](#plan-implementation--practice-document)
+  - [Cursor plan documents use Chinese](#cursor-plan-documents-use-chinese)
+  - [Plans that touch repo need commit messages](#plans-that-touch-repo-need-commit-messages)
   - [Related](#related)
 
 ---
@@ -128,6 +132,22 @@ Previously the database query log had no tag; it was just `[157.857ms] [rows:1] 
 **Rule**: After implementing a plan (when the build succeeds), produce a **concrete practice document** for that implementation. Place it under the relevant project doc directory (e.g. `client/uim-flutter/doc/` for the Flutter app). The document must: (1) record **only successful practices** (do not document failed attempts); (2) include **commonly used commands** (e.g. build, analyze, run, codegen). Update the same doc as later phases add more practices, so it stays a single, actionable reference for future work and onboarding.
 
 *(Backup of `project-rules.mdc` – Plan implementation output.)*
+
+---
+
+## Cursor plan documents use Chinese
+
+**Rule**: **Only** Cursor plan documents (e.g. `.plan.md` under `.cursor/plans/` or Cursor-generated plan files) **must be written in Chinese** for the body text. Other design/plan docs under `doc/` are not required to be in Chinese. Titles, terminology, and code/paths may remain in English.
+
+*(Backup of `project-rules.mdc` – Cursor plan documents use Chinese.)*
+
+---
+
+## Plans that touch repo need commit messages
+
+**Rule**: If a plan includes **code or documentation changes** to the repo (add, delete, refactor), the plan **must** provide **normative English commit messages** for those changes: list them per logical change, and **provide one final merged commit message** for squash or single-commit use. Format: `type(scope): short description`.
+
+*(Backup of `project-rules.mdc` – Plans that touch the repo must include commit messages.)*
 
 ---
 

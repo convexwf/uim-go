@@ -37,6 +37,9 @@ func (m *mockMessageRepo) ListByConversationID(convID uuid.UUID, limit, offset i
 func (m *mockMessageRepo) GetByID(messageID int64) (*model.Message, error) {
 	return nil, nil
 }
+func (m *mockMessageRepo) GetLastMessagesByConversationIDs(conversationIDs []uuid.UUID) (map[uuid.UUID]*model.Message, error) {
+	return nil, nil
+}
 
 // mockConvServiceForMessage only implements EnsureUserInConversation behavior for message tests.
 type mockConvServiceForMessage struct {
@@ -51,6 +54,12 @@ func (m *mockConvServiceForMessage) GetByID(conversationID, userID uuid.UUID) (*
 }
 func (m *mockConvServiceForMessage) ListByUserID(userID uuid.UUID, limit, offset int) ([]*model.Conversation, error) {
 	return nil, nil
+}
+func (m *mockConvServiceForMessage) ListByUserIDWithMeta(userID uuid.UUID, limit, offset int) ([]*ConversationWithMeta, error) {
+	return nil, nil
+}
+func (m *mockConvServiceForMessage) MarkRead(conversationID, userID uuid.UUID, lastReadMessageID int64) error {
+	return nil
 }
 func (m *mockConvServiceForMessage) EnsureUserInConversation(conversationID, userID uuid.UUID) error {
 	return m.ensureErr
