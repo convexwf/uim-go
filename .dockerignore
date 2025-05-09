@@ -5,6 +5,7 @@
 
 # Documentation
 doc/
+client/
 *.md
 !README.md
 
