@@ -14,7 +14,9 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -27,6 +29,7 @@ import (
 	"github.com/convexwf/uim-go/internal/model"
 	"github.com/convexwf/uim-go/internal/pkg/jwt"
 	"github.com/convexwf/uim-go/internal/service"
+	"github.com/convexwf/uim-go/internal/store"
 	"github.com/convexwf/uim-go/internal/websocket"
 )
 
@@ -49,17 +52,21 @@ var upgrader = gorillawebsocket.Upgrader{
 
 // WebSocketHandler handles WebSocket connections.
 type WebSocketHandler struct {
-	jwtManager *jwt.JWTManager
-	hub        *websocket.Hub
-	msgSvc     service.MessageService
+	jwtManager     *jwt.JWTManager
+	hub            *websocket.Hub
+	msgSvc         service.MessageService
+	offlineQueue   store.OfflineQueue
+	presenceStore  store.PresenceStore
 }
 
-// NewWebSocketHandler creates a new WebSocket handler.
-func NewWebSocketHandler(jwtManager *jwt.JWTManager, hub *websocket.Hub, msgSvc service.MessageService) *WebSocketHandler {
+// NewWebSocketHandler creates a new WebSocket handler. offlineQueue and presenceStore may be nil.
+func NewWebSocketHandler(jwtManager *jwt.JWTManager, hub *websocket.Hub, msgSvc service.MessageService, offlineQueue store.OfflineQueue, presenceStore store.PresenceStore) *WebSocketHandler {
 	return &WebSocketHandler{
-		jwtManager: jwtManager,
-		hub:        hub,
-		msgSvc:     msgSvc,
+		jwtManager:    jwtManager,
+		hub:           hub,
+		msgSvc:        msgSvc,
+		offlineQueue:  offlineQueue,
+		presenceStore: presenceStore,
 	}
 }
 
@@ -101,12 +108,47 @@ func (h *WebSocketHandler) ServeWS(c *gin.Context) {
 	}
 	h.hub.Register(client)
 
+	// Presence: mark online and publish
+	if h.presenceStore != nil {
+		ctx := context.Background()
+		if err := h.presenceStore.SetOnline(ctx, userID); err != nil {
+			log.Printf("[WS] presence set online: user_id=%s err=%v", userID, err)
+		} else if err := h.presenceStore.PublishUpdate(ctx, userID, "online"); err != nil {
+			log.Printf("[WS] presence publish: user_id=%s err=%v", userID, err)
+		}
+	}
+
+	// Deliver offline messages (oldest first)
+	if h.offlineQueue != nil {
+		ctx := context.Background()
+		payloads, err := h.offlineQueue.PopAll(ctx, userID)
+		if err != nil {
+			log.Printf("[WS] offline PopAll: user_id=%s err=%v", userID, err)
+		} else {
+			for _, p := range payloads {
+				select {
+				case client.Send <- p:
+				default:
+					log.Printf("[WS] offline send buffer full, dropping one message for user_id=%s", userID)
+				}
+			}
+		}
+	}
+
 	go h.writePump(client)
 	h.readPump(client)
 }
 
 func (h *WebSocketHandler) readPump(client *websocket.Client) {
 	defer func() {
+		if h.presenceStore != nil {
+			ctx := context.Background()
+			if err := h.presenceStore.SetOffline(ctx, client.UserID); err != nil {
+				log.Printf("[WS] presence set offline: user_id=%s err=%v", client.UserID, err)
+			} else if err := h.presenceStore.PublishUpdate(ctx, client.UserID, "offline"); err != nil {
+				log.Printf("[WS] presence publish offline: user_id=%s err=%v", client.UserID, err)
+			}
+		}
 		h.hub.Unregister(client)
 		_ = client.Conn.Close()
 	}()
@@ -114,6 +156,9 @@ func (h *WebSocketHandler) readPump(client *websocket.Client) {
 	_ = client.Conn.SetReadDeadline(time.Now().Add(wsPongWait))
 	client.Conn.SetPongHandler(func(string) error {
 		_ = client.Conn.SetReadDeadline(time.Now().Add(wsPongWait))
+		if h.presenceStore != nil {
+			_ = h.presenceStore.Refresh(context.Background(), client.UserID)
+		}
 		return nil
 	})
 

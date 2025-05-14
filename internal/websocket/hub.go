@@ -14,7 +14,9 @@
 package websocket
 
 import (
+	"context"
 	"encoding/json"
+	"log"
 	"sync"
 
 	"github.com/google/uuid"
@@ -22,11 +24,14 @@ import (
 
 	"github.com/convexwf/uim-go/internal/model"
 	"github.com/convexwf/uim-go/internal/repository"
+	"github.com/convexwf/uim-go/internal/store"
 )
 
 // Hub maintains active WebSocket connections and broadcasts messages to conversation participants.
+// If OfflineQueue is set, messages for offline users are pushed to the queue for delivery on reconnect.
 type Hub struct {
-	convRepo repository.ConversationRepository
+	convRepo     repository.ConversationRepository
+	offlineQueue store.OfflineQueue
 	// userID -> set of clients (one user can have multiple connections)
 	clients map[uuid.UUID]map[*Client]struct{}
 	mu      sync.RWMutex
@@ -40,15 +45,17 @@ type Client struct {
 	Hub    *Hub
 }
 
-// NewHub creates a new WebSocket hub.
-func NewHub(convRepo repository.ConversationRepository) *Hub {
+// NewHub creates a new WebSocket hub. offlineQueue may be nil (offline messages are dropped).
+func NewHub(convRepo repository.ConversationRepository, offlineQueue store.OfflineQueue) *Hub {
 	return &Hub{
-		convRepo: convRepo,
-		clients:  make(map[uuid.UUID]map[*Client]struct{}),
+		convRepo:     convRepo,
+		offlineQueue: offlineQueue,
+		clients:      make(map[uuid.UUID]map[*Client]struct{}),
 	}
 }
 
 // NotifyNewMessage implements service.MessageNotifier. It broadcasts the message to all participants of the conversation.
+// Participants not connected are skipped for real-time delivery; if OfflineQueue is set, the message is pushed there.
 func (h *Hub) NotifyNewMessage(conversationID uuid.UUID, msg *model.Message) {
 	userIDs, err := h.convRepo.GetParticipantUserIDs(conversationID)
 	if err != nil {
@@ -62,7 +69,6 @@ func (h *Hub) NotifyNewMessage(conversationID uuid.UUID, msg *model.Message) {
 		return
 	}
 	h.mu.RLock()
-	defer h.mu.RUnlock()
 	for _, uid := range userIDs {
 		if conns, ok := h.clients[uid]; ok {
 			for c := range conns {
@@ -72,8 +78,13 @@ func (h *Hub) NotifyNewMessage(conversationID uuid.UUID, msg *model.Message) {
 					// skip if send buffer full
 				}
 			}
+		} else if h.offlineQueue != nil {
+			if err := h.offlineQueue.Push(context.Background(), uid, payload); err != nil {
+				log.Printf("[Hub] offline queue push: user_id=%s err=%v", uid, err)
+			}
 		}
 	}
+	h.mu.RUnlock()
 }
 
 // Register adds a client to the hub.

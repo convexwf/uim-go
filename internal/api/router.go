@@ -4,7 +4,7 @@
 // File: router.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-05-07
+// Last modified: 2025-05-14
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,30 +24,25 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/convexwf/uim-go/internal/middleware"
 	"github.com/convexwf/uim-go/internal/pkg/jwt"
 	"github.com/convexwf/uim-go/internal/service"
+	"github.com/convexwf/uim-go/internal/store"
 	"github.com/convexwf/uim-go/internal/websocket"
 )
 
 // SetupRouter configures and returns the HTTP router with all routes.
 //
-// Parameters:
-//   - db: The database connection
-//   - authService: The authentication service
-//   - jwtManager: The JWT manager for protected routes
-//   - convSvc: The conversation service (optional for messaging routes)
-//   - msgSvc: The message service (optional for messaging routes)
-//
-// Returns:
-//   - *gin.Engine: The configured Gin router
-func SetupRouter(db *gorm.DB, authService service.AuthService, jwtManager *jwt.JWTManager, convSvc service.ConversationService, msgSvc service.MessageService, hub *websocket.Hub) *gin.Engine {
+// redisClient may be nil (offline queue and presence disabled, health check skips Redis).
+// offlineQueue and presenceStore may be nil (offline messages dropped, presence returns offline).
+func SetupRouter(db *gorm.DB, authService service.AuthService, jwtManager *jwt.JWTManager, convSvc service.ConversationService, msgSvc service.MessageService, hub *websocket.Hub, redisClient redis.Cmdable, offlineQueue store.OfflineQueue, presenceStore store.PresenceStore) *gin.Engine {
 	router := gin.Default()
 
 	// Health check (no auth required)
-	healthHandler := NewHealthHandler(db)
+	healthHandler := NewHealthHandler(db, redisClient)
 	router.GET("/health", healthHandler.Health)
 
 	// API routes
@@ -73,11 +68,14 @@ func SetupRouter(db *gorm.DB, authService service.AuthService, jwtManager *jwt.J
 
 			msgHandler := NewMessageHandler(msgSvc)
 			protected.GET("/conversations/:id/messages", msgHandler.ListByConversation)
+
+			presenceHandler := NewPresenceHandler(presenceStore)
+			protected.GET("/users/:id/presence", presenceHandler.GetPresence)
 		}
 	}
 
 	// WebSocket (token in query or Authorization header)
-	wsHandler := NewWebSocketHandler(jwtManager, hub, msgSvc)
+	wsHandler := NewWebSocketHandler(jwtManager, hub, msgSvc, offlineQueue, presenceStore)
 	router.GET("/ws", wsHandler.ServeWS)
 
 	return router

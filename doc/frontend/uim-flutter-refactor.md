@@ -20,7 +20,7 @@
   - [3.3 Dart / Flutter Type Mapping](#33-dart--flutter-type-mapping)
 - [4. Local Storage (Platform-Split and Abstraction)](#4-local-storage-platform-split-and-abstraction)
   - [4.1 Unified Storage Abstraction](#41-unified-storage-abstraction)
-  - [4.2 Native / Desktop: Isar](#42-native--desktop-isar)
+  - [4.2 Native / Desktop: Isar Plus](#42-native--desktop-isar-plus)
   - [4.3 Web: IndexedDB](#43-web-indexeddb)
 - [5. Seed Users](#5-seed-users)
 - [6. Implementation Phases](#6-implementation-phases)
@@ -42,7 +42,7 @@ This document defines how the **uim-flutter** client must be refactored to align
 - **Authentication**: Register, login, refresh token; token storage and `Authorization: Bearer` headers.
 - **Conversations**: List conversations (paginated), create one-on-one by `other_user_id`.
 - **Messages**: Message history via REST; send/receive via WebSocket (`send_message` / `new_message`).
-- **Unified storage abstraction** and data models aligned with uim-go; **Native**: Isar implementation; **Web**: IndexedDB implementation (no Hive, no Isar on web).
+- **Unified storage abstraction** and data models aligned with uim-go; **Native**: Isar Plus implementation; **Web**: IndexedDB implementation (no Hive, no Isar Plus on web).
 - Removal of Hive and contact-related logic from the current codebase.
 - Running and debugging on **Flutter Web** first, with configurable backend URL.
 
@@ -60,7 +60,7 @@ This document defines how the **uim-flutter** client must be refactored to align
 | --------- | ----------- |
 | **uim-go as standard** | **uim-go is the single source of truth.** API paths, request/response shapes, WebSocket protocol, and field names (e.g. `conversation_id`, `sender_id`, `created_at`) must match the backend. The Flutter client must not introduce divergent contracts. |
 | **Web for debugging** | **Primary development and integration target is Flutter Web.** Run integration tests and backend connectivity checks in the browser (e.g. `flutter run -d chrome`). Mobile and desktop can follow. |
-| **Platform-split local storage** | **Native/Desktop**: Use **Isar** (v3/v4) for local persistence and performance. **Web**: **Do not use Hive.** Use a lighter approach: **direct IndexedDB** (browser native; optional thin wrapper via `idb_shim`, `indexed_db`, or similar Dart packages). A **unified storage abstraction** (interface) must be used: business and UI layers depend only on this interface, not on Isar or IndexedDB. Native implements the interface with Isar; Web implements the same interface with IndexedDB. The abstraction API must be **async** (e.g. `Future<List<Message>> getMessages(...)`) to match IndexedDB semantics. |
+| **Platform-split local storage** | **Native/Desktop**: Use **Isar Plus** for local persistence and performance. **Web**: **Do not use Hive.** Use a lighter approach: **direct IndexedDB** (browser native; optional thin wrapper via `idb_shim`, `indexed_db`, or similar Dart packages). A **unified storage abstraction** (interface) must be used: business and UI layers depend only on this interface, not on Isar Plus or IndexedDB. Native implements the interface with Isar Plus; Web implements the same interface with IndexedDB. The abstraction API must be **async** (e.g. `Future<List<Message>> getMessages(...)`) to match IndexedDB semantics. |
 | **No contacts; seed users only** | **Contacts and user discovery are out of scope.** The client uses **seed users** only. Document the seed users (from [cmd/seed/main.go](../../cmd/seed/main.go)): `alice`, `bob`, `test`, all with password `password123`. No "contacts list" API or UI; conversations are created using known seed `user_id` (e.g. a small in-app or config list of seed user IDs). |
 
 ---
@@ -117,17 +117,17 @@ Align field names and types with uim-go:
 
 - Define **data models** aligned with uim-go: User, Conversation, Message (field names and types match backend JSON).
 - Define a **local storage interface** (e.g. conversation list read/write, message list read/write with pagination). The interface must be **async** (e.g. `Future<List<Message>> getMessages(...)`) so that IndexedDB can implement it.
-- Business and UI layers depend only on this interface, not on Isar or IndexedDB.
+- Business and UI layers depend only on this interface, not on Isar Plus or IndexedDB.
 
-### 4.2 Native / Desktop: Isar
+### 4.2 Native / Desktop: Isar Plus
 
-- Use **Isar** to implement the storage interface.
-- Isar collections and field names must align with uim-go JSON: `message_id`, `conversation_id`, `sender_id`, `content`, `type`, `created_at`, etc.
-- Use Isar code generation as needed.
+- Use **Isar Plus** to implement the storage interface.
+- Isar Plus collections and field names must align with uim-go JSON: `message_id`, `conversation_id`, `sender_id`, `content`, `type`, `created_at`, etc.
+- Use Isar Plus built-in code generation (build_runner) as needed.
 
 ### 4.3 Web: IndexedDB
 
-- **Do not use Hive or Isar on web.** Implement the same storage interface using **IndexedDB** directly (e.g. via `idb_shim`, `indexed_db`, or a thin wrapper).
+- **Do not use Hive or Isar Plus on web.** Implement the same storage interface using **IndexedDB** directly (e.g. via `idb_shim`, `indexed_db`, or a thin wrapper).
 - Object stores and indexes should use the same schema and field names as uim-go.
 - Document Web-specific initialization and async handling (e.g. database open, transaction lifecycle).
 
@@ -151,9 +151,9 @@ Seed users are created by `make seed-db` (see [cmd/seed/main.go](../../cmd/seed/
 
 | Phase | Tasks |
 | ----- | ----- |
-| **1 – Foundation** | Remove Hive (hive_ce, hive_ce_flutter, hive_ce_generator). Define uim-go-aligned **data models** and **local storage abstraction** (async API). **Native**: Add Isar and codegen; implement the interface with Isar. **Web**: Implement the same interface with **IndexedDB** (do not add Hive). Add HTTP client (e.g. dio or http) and configurable Base URL (e.g. `localhost:8080` or env). |
+| **1 – Foundation** | Remove Hive (hive_ce, hive_ce_flutter, hive_ce_generator). Define uim-go-aligned **data models** and **local storage abstraction** (async API). **Native**: Add Isar Plus and codegen; implement the interface with Isar Plus. **Web**: Implement the same interface with **IndexedDB** (do not add Hive). Add HTTP client (e.g. dio or http) and configurable Base URL (e.g. `localhost:8080` or env). |
 | **2 – Auth** | Implement register, login, refresh. Secure token storage (e.g. flutter_secure_storage; document Web alternative). Inject token into API client and WebSocket. |
-| **3 – Conversations and messages** | REST: list conversations, create 1:1 (using seed `other_user_id`), list messages. WebSocket: connect with token, send `send_message`, handle `new_message`. Map server DTOs to local models and write through the storage abstraction (Isar or IndexedDB). Optional: sync conversations and messages for offline display. |
+| **3 – Conversations and messages** | REST: list conversations, create 1:1 (using seed `other_user_id`), list messages. WebSocket: connect with token, send `send_message`, handle `new_message`. Map server DTOs to local models and write through the storage abstraction (Isar Plus or IndexedDB). Optional: sync conversations and messages for offline display. |
 | **4 – UI and Web** | Replace mock data in [chat_screen.dart](../../client/uim-flutter/uim/lib/page/chat_screen.dart) and related screens with API + storage abstraction data. Use a seed-only list for "contacts" placeholder. Ensure the app runs and is debuggable on **Flutter Web** with a configurable backend URL. |
 
 ---
@@ -179,11 +179,11 @@ flowchart LR
   end
 
   subgraph backends [Storage Implementations]
-    IsarImpl[Isar - Native/Desktop]
+    IsarPlusImpl[Isar Plus - Native/Desktop]
     IdbImpl[IndexedDB - Web]
   end
 
-  StoreAbstraction -.->|Native| IsarImpl
+  StoreAbstraction -.->|Native| IsarPlusImpl
   StoreAbstraction -.->|Web| IdbImpl
 
   Biz <-->|REST + WebSocket| uimgo[uim-go Server]
@@ -207,7 +207,7 @@ lib/
 │   └── message.dart
 ├── storage/
 │   ├── storage_interface.dart   # Abstract interface (async API)
-│   ├── isar_storage.dart        # Isar implementation (native/desktop)
+│   ├── isar_storage.dart        # Isar Plus implementation (native/desktop)
 │   └── indexed_db_storage.dart  # IndexedDB implementation (web)
 ├── screens/
 │   ├── main_screen.dart
@@ -216,7 +216,7 @@ lib/
 └── ...
 ```
 
-Storage abstraction and the two implementations (Isar for native, IndexedDB for web) live under `storage/`. The rest of the app depends only on the interface.
+Storage abstraction and the two implementations (Isar Plus for native, IndexedDB for web) live under `storage/`. The rest of the app depends only on the interface.
 
 ---
 

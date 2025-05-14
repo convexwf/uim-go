@@ -4,7 +4,7 @@
 // File: health_handler.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-13
+// Last modified: 2025-05-14
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,20 +23,24 @@
 package api
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 // HealthHandler handles health check requests.
 type HealthHandler struct {
-	db *gorm.DB
+	db    *gorm.DB
+	redis redis.Cmdable
 }
 
-// NewHealthHandler creates a new health check handler.
-func NewHealthHandler(db *gorm.DB) *HealthHandler {
-	return &HealthHandler{db: db}
+// NewHealthHandler creates a new health check handler. redis may be nil (Redis check skipped).
+func NewHealthHandler(db *gorm.DB, redis redis.Cmdable) *HealthHandler {
+	return &HealthHandler{db: db, redis: redis}
 }
 
 // HealthResponse represents the health check response.
@@ -73,12 +77,26 @@ func (h *HealthHandler) Health(c *gin.Context) {
 		}
 	}
 
+	// Check Redis if configured
+	if h.redis != nil {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+		defer cancel()
+		if err := h.redis.Ping(ctx).Err(); err != nil {
+			checks["redis"] = "unhealthy: " + err.Error()
+			if status == "healthy" {
+				status = "degraded"
+			}
+		} else {
+			checks["redis"] = "healthy"
+		}
+	}
+
 	response := HealthResponse{
 		Status: status,
 		Checks: checks,
 	}
 
-	if status == "healthy" {
+	if status == "healthy" || status == "degraded" {
 		c.JSON(http.StatusOK, response)
 	} else {
 		c.JSON(http.StatusServiceUnavailable, response)

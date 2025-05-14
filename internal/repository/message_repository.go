@@ -14,10 +14,13 @@
 package repository
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/convexwf/uim-go/internal/model"
+	"github.com/convexwf/uim-go/internal/pkg/retry"
 )
 
 // MessageRepository defines the interface for message data access.
@@ -37,9 +40,11 @@ func NewMessageRepository(db *gorm.DB) MessageRepository {
 	return &messageRepository{db: db}
 }
 
-// Create creates a new message.
+// Create creates a new message. Retries on transient DB errors (e.g. connection timeout) up to 3 times.
 func (r *messageRepository) Create(msg *model.Message) error {
-	return r.db.Create(msg).Error
+	return retry.Do(3, 100*time.Millisecond, func() error {
+		return r.db.Create(msg).Error
+	})
 }
 
 // ListByConversationID lists messages in a conversation, newest first.

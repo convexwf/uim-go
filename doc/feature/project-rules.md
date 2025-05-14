@@ -10,10 +10,11 @@
 | Diagrams in doc/ use Mermaid      | ✅      | 2025-04-26 |
 | Directory tree format in doc/     | ✅      | 2025-04-26 |
 | Backend logging convention        | ✅      | 2026-02-04 |
-| Design choice docs use full tables | ✅      | 2026-02-24 |
+| Design choice docs (format flexible) | ✅      | 2026-02-24 |
 | Plan implementation → practice doc | ✅      | 2026-02-24 |
 | Cursor plan documents use Chinese  | ✅      | 2026-03-02 |
 | Plans that touch repo need commit messages | ✅ | 2026-03-02 |
+| Do not add new plans without user approval  | ✅ | 2026-02-26 |
 
 ---
 
@@ -33,10 +34,11 @@
   - [Diagrams in doc/ use Mermaid](#diagrams-in-doc-use-mermaid)
   - [Directory tree format in doc/](#directory-tree-format-in-doc)
   - [Backend logging convention](#backend-logging-convention)
-  - [Design choice docs use full tables](#design-choice-docs-use-full-tables)
+  - [Design choice docs (方案选型文档) – format flexible](#design-choice-docs-方案选型文档--format-flexible)
   - [Plan implementation → practice document](#plan-implementation--practice-document)
   - [Cursor plan documents use Chinese](#cursor-plan-documents-use-chinese)
   - [Plans that touch repo need commit messages](#plans-that-touch-repo-need-commit-messages)
+  - [Do not add new plans without user approval](#do-not-add-new-plans-without-user-approval)
   - [Related](#related)
 
 ---
@@ -119,9 +121,9 @@ Previously the database query log had no tag; it was just `[157.857ms] [rows:1] 
 
 ---
 
-## Design choice docs use full tables
+## Design choice docs (方案选型文档) – format flexible
 
-**Rule**: Any document that records technology or design choices (方案选型) must use **complete comparison tables** for each decision. For every option considered (not only the chosen one), the table must include at least: option name, brief description, pros (优点), cons (缺点). A column for chosen/recommended (选用或推荐) may be included. Do not describe non-chosen options only in a short “未选方案简述” paragraph; all options must appear in the same table with full pros and cons. After the table, a short “选定方案” and “选用理由” section is acceptable.
+**Rule**: Any document that records technology or design choices (方案选型) must make the decision auditable and reversible: for each option, provide pros (优点) and cons (缺点). Format may be comparison tables or prose by dimension. Do not describe non-chosen options only in a short “未选方案简述” paragraph; all options must be covered with comparable detail (format may be tables or prose by dimension; avoid one very large table). After the comparison, a short “选定方案” or “推荐顺序” and “选用理由” is acceptable.
 
 *(Backup of `doc-rules.mdc` – Design / technology choice documents.)*
 
@@ -148,6 +150,14 @@ Previously the database query log had no tag; it was just `[157.857ms] [rows:1] 
 **Rule**: If a plan includes **code or documentation changes** to the repo (add, delete, refactor), the plan **must** provide **normative English commit messages** for those changes: list them per logical change, and **provide one final merged commit message** for squash or single-commit use. Format: `type(scope): short description`.
 
 *(Backup of `project-rules.mdc` – Plans that touch the repo must include commit messages.)*
+
+---
+
+## Do not add new plans without user approval
+
+**Rule**: Do **not** create or add new plan files without the user’s explicit agreement. When the scope of work extends or changes (e.g. same feature, new subtask), **update or merge into the existing plan** the user is already using; do not create a second, separate plan. If the user asks to “merge with the original plan”, append or integrate the new content into that existing plan instead of creating another plan file.
+
+*(Backup of `project-rules.mdc` – No new plans without user approval.)*
 
 ---
 

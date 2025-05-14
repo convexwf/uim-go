@@ -891,20 +891,18 @@ tcp-keepalive 300
 curl http://localhost:8080/health
 ```
 
-**Response**:
+**Response** (when DB and Redis are up):
 ```json
 {
   "status": "healthy",
   "checks": {
-    "database": {
-      "status": "healthy"
-    },
-    "redis": {
-      "status": "healthy"
-    }
+    "database": "healthy",
+    "redis": "healthy"
   }
 }
 ```
+
+When Redis is unavailable, `status` may be `"degraded"` and `checks.redis` will be `"unhealthy: ..."`; the service still runs but offline message queue and presence are disabled. When the database is down, `status` is `"unhealthy"` and the endpoint returns 503.
 
 ### 6.2 Logging
 

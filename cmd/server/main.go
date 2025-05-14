@@ -4,7 +4,7 @@
 // File: main.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-05-07
+// Last modified: 2025-05-14
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -36,7 +37,9 @@ import (
 	"github.com/convexwf/uim-go/internal/pkg/jwt"
 	"github.com/convexwf/uim-go/internal/repository"
 	"github.com/convexwf/uim-go/internal/service"
+	"github.com/convexwf/uim-go/internal/store"
 	"github.com/convexwf/uim-go/internal/websocket"
+	"github.com/redis/go-redis/v9"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -68,6 +71,26 @@ func main() {
 		cfg.JWT.RefreshExpiry,
 	)
 
+	// Initialize Redis (optional: on failure, offline queue and presence are disabled)
+	var redisClient *redis.Client
+	redisOpts := &redis.Options{
+		Addr:     cfg.Redis.Addr(),
+		Password: cfg.Redis.Password,
+		DB:       0,
+	}
+	redisClient = redis.NewClient(redisOpts)
+	if err := redisClient.Ping(context.Background()).Err(); err != nil {
+		log.Printf("Redis not available (offline queue and presence disabled): %v", err)
+		redisClient = nil
+	}
+
+	var offlineQueue store.OfflineQueue
+	var presenceStore store.PresenceStore
+	if redisClient != nil {
+		offlineQueue = store.NewRedisOfflineQueue(redisClient)
+		presenceStore = store.NewRedisPresenceStore(redisClient)
+	}
+
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	convRepo := repository.NewConversationRepository(db)
@@ -76,9 +99,9 @@ func main() {
 	// Initialize services
 	authService := service.NewAuthService(userRepo, jwtManager)
 	convSvc := service.NewConversationService(convRepo, userRepo, msgRepo)
-	hub := websocket.NewHub(convRepo)
+	hub := websocket.NewHub(convRepo, offlineQueue)
 	msgSvc := service.NewMessageService(msgRepo, convSvc, hub)
-	router := api.SetupRouter(db, authService, jwtManager, convSvc, msgSvc, hub)
+	router := api.SetupRouter(db, authService, jwtManager, convSvc, msgSvc, hub, redisClient, offlineQueue, presenceStore)
 
 	// Apply middleware
 	router.Use(middleware.CORSMiddleware(cfg))
