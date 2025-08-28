@@ -7,7 +7,10 @@
 APP_NAME := uim-server
 BINARY_PATH := bin/$(APP_NAME)
 SEED_BINARY := bin/seed
-DOCKER_IMAGE := uim-go:latest
+# Image tag used by cloud-server docker-compose.dev.yml (compose + pull missing → use local build).
+DOCKER_IMAGE := ghcr.io/convexwf/uim-go:latest
+# Extra tag for local ad-hoc use; same image as DOCKER_IMAGE.
+DOCKER_IMAGE_LOCAL := uim-go:latest
 DOCKER_CONTAINER := uim-server
 
 # Default target
@@ -19,7 +22,7 @@ help:
 	@echo "  make test         - Run all tests"
 	@echo "  make test-cover   - Run tests with coverage"
 	@echo "  make clean        - Clean build artifacts"
-	@echo "  make docker-build - Build Docker image"
+	@echo "  make docker-build - Build Docker image (tags: ghcr.io/.../uim-go:latest + uim-go:latest)"
 	@echo "  make docker-up    - Start Docker services (PostgreSQL + Redis)"
 	@echo "  make docker-down  - Stop Docker services"
 	@echo "  make docker-logs  - View Docker logs"
@@ -69,11 +72,11 @@ clean:
 	@rm -f coverage.out coverage.html
 	@echo "Clean complete"
 
-# Build Docker image
+# Build Docker image (matches cloud-server dev compose; second tag for convenience)
 docker-build:
 	@echo "Building Docker image..."
-	@docker build -t $(DOCKER_IMAGE) .
-	@echo "Docker image built: $(DOCKER_IMAGE)"
+	@docker build -t $(DOCKER_IMAGE) -t $(DOCKER_IMAGE_LOCAL) .
+	@echo "Docker image built: $(DOCKER_IMAGE) ($(DOCKER_IMAGE_LOCAL))"
 
 # Start Docker services (PostgreSQL + Redis + UIM Server)
 docker-up: docker-build

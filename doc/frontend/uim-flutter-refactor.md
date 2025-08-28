@@ -3,7 +3,7 @@
 **Document Version:** 1.0  
 **Last Updated:** 2026-02-24  
 **Author:** convexwf@gmail.com  
-**Backend Reference:** uim-go; [Initialization](../feature/initialization.md), [Core Messaging](../feature/core-messaging.md)
+**Backend Reference:** uim-go; [Initialization](../feature/initialization.md), [Core Messaging](../feature/core-messaging.md), [Reliability & Polish](../feature/reliability-polish.md)
 
 ---
 
@@ -13,6 +13,7 @@
   - [1.1 Document Purpose](#11-document-purpose)
   - [1.2 In Scope](#12-in-scope)
   - [1.3 Out of Scope](#13-out-of-scope)
+  - [1.4 Deployment Targets (Three Ends)](#14-deployment-targets-three-ends)
 - [2. Principles and Constraints](#2-principles-and-constraints)
 - [3. API and Protocol Contract](#3-api-and-protocol-contract)
   - [3.1 REST API](#31-rest-api)
@@ -52,6 +53,10 @@ This document defines how the **uim-flutter** client must be refactored to align
 - Native-first or desktop-first as the primary development target.
 - Features not implemented in uim-go v1.0.
 
+### 1.4 Deployment Targets (Three Ends)
+
+The client has **three deployment forms**: **Web** (standalone in browser), **Plugin** (embedded in uportal), and **App** (native/desktop: iOS, Android, macOS, etc.). REST API, Presence (`GET /api/users/:id/presence`), WebSocket reconnection, and conversation list (including `other_user`) behave the **same on all three**; the same shared implementation is used with no per-end branching. Differences are only in **capability injection**: storage (IndexedDB vs Isar, or uportal KV when in-shell), token storage, base URL source (localStorage vs dart-define), and lifecycle (e.g. uportal onHide/onShow for Plugin). See [§4 Local Storage](#4-local-storage-platform-split-and-abstraction) and implementation practices (UPA / capability binder) for how each end is selected.
+
 ---
 
 ## 2. Principles and Constraints
@@ -79,6 +84,7 @@ All contracts are defined by uim-go. See [Initialization](../feature/initializat
 | GET | `/api/conversations` | List conversations. Query: `limit`, `offset`. Header: `Authorization: Bearer <access_token>`. |
 | POST | `/api/conversations` | Create 1:1. Body: `{ "other_user_id": "<uuid>" }`. Header: Bearer token. |
 | GET | `/api/conversations/:id/messages` | List messages. Query: `limit`, `offset`, optional `before_id`. Header: Bearer token. |
+| GET | `/api/users/:id/presence` | Query user online status. Header: Bearer token. Response: `{ "user_id", "status": "online" \| "offline", "last_seen"?: ISO8601 }`. Backend: [Reliability & Polish – Online Presence](../feature/reliability-polish.md#online-presence). |
 
 Request/response field names use **snake_case** (e.g. `access_token`, `conversation_id`, `other_user_id`, `created_at`).
 
@@ -88,6 +94,7 @@ Request/response field names use **snake_case** (e.g. `access_token`, `conversat
 - **Client → Server**: `{ "type": "send_message", "conversation_id": "<uuid>", "content": "text" }`.
 - **Server → Client**: `{ "type": "new_message", "message": { "message_id", "conversation_id", "sender_id", "content", "type", "created_at", ... } }`.
 - **Rate limit**: 60 messages per minute per connection. Server sends ping; client should respond with pong.
+- **Offline messages**: After connection is established, the server may send previously queued `new_message` frames (offline messages). The client handles them with the same logic as real-time messages; optionally show a brief "syncing" state after reconnect.
 
 See [Core Messaging – WebSocket](../feature/core-messaging.md#websocket) for full protocol.
 
@@ -153,8 +160,8 @@ Seed users are created by `make seed-db` (see [cmd/seed/main.go](../../cmd/seed/
 | ----- | ----- |
 | **1 – Foundation** | Remove Hive (hive_ce, hive_ce_flutter, hive_ce_generator). Define uim-go-aligned **data models** and **local storage abstraction** (async API). **Native**: Add Isar Plus and codegen; implement the interface with Isar Plus. **Web**: Implement the same interface with **IndexedDB** (do not add Hive). Add HTTP client (e.g. dio or http) and configurable Base URL (e.g. `localhost:8080` or env). |
 | **2 – Auth** | Implement register, login, refresh. Secure token storage (e.g. flutter_secure_storage; document Web alternative). Inject token into API client and WebSocket. |
-| **3 – Conversations and messages** | REST: list conversations, create 1:1 (using seed `other_user_id`), list messages. WebSocket: connect with token, send `send_message`, handle `new_message`. Map server DTOs to local models and write through the storage abstraction (Isar Plus or IndexedDB). Optional: sync conversations and messages for offline display. |
-| **4 – UI and Web** | Replace mock data in [chat_screen.dart](../../client/uim-flutter/uim/lib/page/chat_screen.dart) and related screens with API + storage abstraction data. Use a seed-only list for "contacts" placeholder. Ensure the app runs and is debuggable on **Flutter Web** with a configurable backend URL. |
+| **3 – Conversations and messages** | REST: list conversations, create 1:1 (using seed `other_user_id`), list messages. WebSocket: connect with token, send `send_message`, handle `new_message`. Map server DTOs to local models and write through the storage abstraction (Isar Plus or IndexedDB). Optional: sync conversations and messages for offline display. **Presence**: Call `GET /api/users/:id/presence`, show online/offline in conversation list or chat header (cache 60s or poll as needed). **Reconnection (optional)**: After disconnect, reconnect with exponential backoff (e.g. 1s, 2s, 4s, max 30s); server pushes offline messages on reconnect; optionally show "syncing" state. |
+| **4 – UI and Web** | Replace mock data in [chat_screen.dart](../../client/uim-flutter/uim/lib/page/chat_screen.dart) and related screens with API + storage abstraction data. Use a seed-only list for "contacts" placeholder. Show presence (online/offline) where applicable. Ensure the app runs and is debuggable on **Flutter Web** with a configurable backend URL. |
 
 ---
 
@@ -225,4 +232,5 @@ Storage abstraction and the two implementations (Isar Plus for native, IndexedDB
 - [UIM Flutter Design Choices](uim-flutter-design-choices.md) – Backup of technology choices (state management, HTTP, token storage, WebSocket, IndexedDB, JSON, implementation order)
 - [Initialization](../feature/initialization.md) – Auth, API endpoints, configuration
 - [Core Messaging](../feature/core-messaging.md) – Conversations, messages, WebSocket protocol
+- [Reliability & Polish](../feature/reliability-polish.md) – Backend offline message queue, presence API, health check (Redis)
 - [cmd/seed/main.go](../../cmd/seed/main.go) – Seed user definitions
