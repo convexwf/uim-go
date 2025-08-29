@@ -15,6 +15,7 @@
 | Cursor plan documents use Chinese  | ✅      | 2026-03-02 |
 | Plans that touch repo need commit messages | ✅ | 2026-03-02 |
 | Do not add new plans without user approval  | ✅ | 2026-02-26 |
+| Post-change verification (Docker: userver / uim-go) | ✅ | 2026-04-10 |
 
 ---
 
@@ -39,6 +40,7 @@
   - [Cursor plan documents use Chinese](#cursor-plan-documents-use-chinese)
   - [Plans that touch repo need commit messages](#plans-that-touch-repo-need-commit-messages)
   - [Do not add new plans without user approval](#do-not-add-new-plans-without-user-approval)
+  - [Post-change verification (Docker: userver / uim-go)](#post-change-verification-docker-userver--uim-go)
   - [Related](#related)
 
 ---
@@ -158,6 +160,14 @@ Previously the database query log had no tag; it was just `[157.857ms] [rows:1] 
 **Rule**: Do **not** create or add new plan files without the user’s explicit agreement. When the scope of work extends or changes (e.g. same feature, new subtask), **update or merge into the existing plan** the user is already using; do not create a second, separate plan. If the user asks to “merge with the original plan”, append or integrate the new content into that existing plan instead of creating another plan file.
 
 *(Backup of `project-rules.mdc` – No new plans without user approval.)*
+
+---
+
+## Post-change verification (Docker: userver / uim-go)
+
+**Rule (monorepo `ubox`)**: After changing **`ubox/userver`** or **`ubox/uim-go`**, when Docker is available: run **`make docker-build`** in that component directory, then **`make deploy-dev`** from **`ubox/cloud-server`**, to verify the stack. Paths match standalone `userver` / `uim-go` repos. If an Agent skips this step, it is a workflow gap (environment or scope), not an invalid rule.
+
+*(Backup of `project-rules.mdc` – Post-change verification.)*
 
 ---
 

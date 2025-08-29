@@ -4,7 +4,7 @@
 // File: main.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-05-14
+// Last modified: 2025-08-29
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -46,6 +47,25 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+// openLogOutput returns a writer for the standard library log and DB logger.
+// If UIM_LOG_FILE is set, logs are duplicated to that file (and its parent dirs are created).
+func openLogOutput() (io.Writer, func(), error) {
+	path := strings.TrimSpace(os.Getenv("UIM_LOG_FILE"))
+	if path == "" {
+		return os.Stdout, func() {}, nil
+	}
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, nil, fmt.Errorf("create log dir: %w", err)
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return nil, nil, fmt.Errorf("open log file: %w", err)
+	}
+	mw := io.MultiWriter(os.Stdout, f)
+	return mw, func() { _ = f.Close() }, nil
+}
+
 func main() {
 	// Load configuration
 	cfg, err := config.Load()
@@ -53,8 +73,15 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
+	logOut, closeLog, err := openLogOutput()
+	if err != nil {
+		log.Fatalf("Failed to set up logging: %v", err)
+	}
+	defer closeLog()
+	log.SetOutput(logOut)
+
 	// Initialize database
-	db, err := initDatabase(cfg)
+	db, err := initDatabase(cfg, logOut)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
@@ -130,7 +157,7 @@ func (d *dbLogWriter) Write(p []byte) (n int, err error) {
 }
 
 // initDatabase initializes the PostgreSQL database connection.
-func initDatabase(cfg *config.Config) (*gorm.DB, error) {
+func initDatabase(cfg *config.Config, logOut io.Writer) (*gorm.DB, error) {
 	var logLevel logger.LogLevel
 	switch cfg.App.LogLevel {
 	case "debug":
@@ -142,7 +169,7 @@ func initDatabase(cfg *config.Config) (*gorm.DB, error) {
 	}
 
 	dbLogger := logger.New(
-		log.New(&dbLogWriter{w: os.Stdout, prefix: "[DB] "}, "", log.LstdFlags),
+		log.New(&dbLogWriter{w: logOut, prefix: "[DB] "}, "", log.LstdFlags),
 		logger.Config{
 			SlowThreshold:             200 * time.Millisecond,
 			LogLevel:                  logLevel,
