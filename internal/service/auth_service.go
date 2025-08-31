@@ -4,7 +4,7 @@
 // File: auth_service.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-13
+// Last modified: 2025-08-31
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,7 +44,8 @@ var (
 type AuthService interface {
 	Register(username, email, password string) (*model.User, string, string, error)
 	Login(username, password string) (*model.User, string, string, error)
-	RefreshToken(refreshToken string) (string, string, error)
+	RefreshToken(refreshToken string) (*model.User, string, string, error)
+	GetProfile(userID uuid.UUID) (*model.User, error)
 }
 
 type authService struct {
@@ -142,34 +143,42 @@ func (s *authService) Login(username, password string) (*model.User, string, str
 	return user, accessToken, refreshToken, nil
 }
 
-func (s *authService) RefreshToken(refreshToken string) (string, string, error) {
+func (s *authService) RefreshToken(refreshToken string) (*model.User, string, string, error) {
 	// Validate refresh token
 	claims, err := s.jwtManager.ValidateRefreshToken(refreshToken)
 	if err != nil {
-		return "", "", ErrInvalidCredentials
+		return nil, "", "", ErrInvalidCredentials
 	}
 
 	// Get user
 	userID, err := uuid.Parse(claims.UserID)
 	if err != nil {
-		return "", "", ErrInvalidCredentials
+		return nil, "", "", ErrInvalidCredentials
 	}
 
 	user, err := s.userRepo.GetByID(userID)
 	if err != nil {
-		return "", "", ErrUserNotFound
+		return nil, "", "", ErrUserNotFound
 	}
 
 	// Generate new tokens
 	accessToken, err := s.jwtManager.GenerateAccessToken(user.UserID.String())
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate access token: %w", err)
+		return nil, "", "", fmt.Errorf("failed to generate access token: %w", err)
 	}
 
 	newRefreshToken, err := s.jwtManager.GenerateRefreshToken(user.UserID.String())
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
+		return nil, "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	return accessToken, newRefreshToken, nil
+	return user, accessToken, newRefreshToken, nil
+}
+
+func (s *authService) GetProfile(userID uuid.UUID) (*model.User, error) {
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+	return user, nil
 }

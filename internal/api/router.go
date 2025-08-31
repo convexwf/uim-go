@@ -4,7 +4,7 @@
 // File: router.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-05-14
+// Last modified: 2025-08-31
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -55,6 +55,12 @@ func SetupRouter(db *gorm.DB, authService service.AuthService, jwtManager *jwt.J
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/refresh", authHandler.RefreshToken)
+		}
+
+		authProtected := apiGroup.Group("/auth")
+		authProtected.Use(middleware.AuthMiddleware(jwtManager))
+		{
+			authProtected.GET("/me", authHandler.Me)
 		}
 
 		// Protected routes (messaging)

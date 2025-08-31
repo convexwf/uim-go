@@ -4,7 +4,7 @@
 // File: auth_service_test.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-05-07
+// Last modified: 2025-08-31
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -272,9 +272,12 @@ func TestAuthService_RefreshToken(t *testing.T) {
 	}
 
 	// Refresh token
-	accessToken, newRefreshToken, err := authService.RefreshToken(refreshToken)
+	user, accessToken, newRefreshToken, err := authService.RefreshToken(refreshToken)
 	if err != nil {
 		t.Fatalf("RefreshToken() error = %v", err)
+	}
+	if user == nil || user.Username != "testuser" {
+		t.Error("RefreshToken() returned unexpected user")
 	}
 	if accessToken == "" {
 		t.Error("RefreshToken() returned empty access token")
@@ -289,7 +292,7 @@ func TestAuthService_RefreshToken_InvalidToken(t *testing.T) {
 	jwtManager := jwt.NewJWTManager("test-secret", 15*time.Minute, 168*time.Hour)
 	authService := NewAuthService(userRepo, jwtManager)
 
-	_, _, err := authService.RefreshToken("invalid-token")
+	_, _, _, err := authService.RefreshToken("invalid-token")
 	if err != ErrInvalidCredentials {
 		t.Errorf("RefreshToken() error = %v, want ErrInvalidCredentials", err)
 	}

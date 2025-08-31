@@ -4,7 +4,7 @@
 // File: auth_handler.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-04-28
+// Last modified: 2025-08-31
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -182,7 +182,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	}
 	log.Printf("[AUTH] refresh attempt")
 
-	accessToken, refreshToken, err := h.authService.RefreshToken(req.RefreshToken)
+	user, accessToken, refreshToken, err := h.authService.RefreshToken(req.RefreshToken)
 	if err != nil {
 		log.Printf("[AUTH] refresh failed reason=invalid_token")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
@@ -191,7 +191,23 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	log.Printf("[AUTH] refresh success")
 
 	c.JSON(http.StatusOK, gin.H{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+		"user":            user,
+		"access_token":    accessToken,
+		"refresh_token":   refreshToken,
 	})
+}
+
+// Me returns the authenticated user (requires Bearer access token).
+func (h *AuthHandler) Me(c *gin.Context) {
+	userID, err := getUserIDFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+	user, err := h.authService.GetProfile(userID)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+		return
+	}
+	c.JSON(http.StatusOK, user)
 }
