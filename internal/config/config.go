@@ -4,7 +4,7 @@
 // File: config.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-13
+// Last modified: 2025-09-03
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -86,7 +86,8 @@ type JWTConfig struct {
 
 // CORSConfig holds CORS (Cross-Origin Resource Sharing) configuration.
 type CORSConfig struct {
-	AllowedOrigins []string
+	AllowedOrigins   []string
+	AllowLoopbackDev bool // When true, allow http://127.0.0.1:* and http://localhost:* (Flutter WebView plugin dev).
 }
 
 // RateLimitConfig holds rate limiting configuration.
@@ -146,7 +147,8 @@ func Load() (*Config, error) {
 			RefreshExpiry: refreshExpiry,
 		},
 		CORS: CORSConfig{
-			AllowedOrigins: corsOrigins,
+			AllowedOrigins:   corsOrigins,
+			AllowLoopbackDev: getEnvBool("CORS_ALLOW_LOOPBACK", true),
 		},
 		RateLimit: RateLimitConfig{
 			Messages: getEnvAsInt("RATE_LIMIT_MESSAGES", 50),
@@ -161,6 +163,22 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// getEnvBool parses a boolean env var (1/t/true/yes/y, case-insensitive). Empty uses default.
+func getEnvBool(key string, defaultValue bool) bool {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return defaultValue
+	}
+	switch strings.ToLower(v) {
+	case "1", "t", "true", "yes", "y", "on":
+		return true
+	case "0", "f", "false", "no", "n", "off":
+		return false
+	default:
+		return defaultValue
+	}
 }
 
 // getEnvAsInt retrieves an environment variable as an integer or returns a default value.

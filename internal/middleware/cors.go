@@ -4,7 +4,7 @@
 // File: cors.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-13
+// Last modified: 2025-09-03
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,10 +23,27 @@
 package middleware
 
 import (
+	"net/url"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/convexwf/uim-go/internal/config"
 )
+
+// isLoopbackHTTPOrigin reports whether origin is http://127.0.0.1, http://localhost, or http://[::1] with any port.
+// Browsers do not let arbitrary sites spoof these Origin values, so allowing them is safe for credentialed API access from local dev / Flutter WebView.
+func isLoopbackHTTPOrigin(origin string) bool {
+	u, err := url.Parse(origin)
+	if err != nil || u.Scheme != "http" {
+		return false
+	}
+	switch h := u.Hostname(); h {
+	case "127.0.0.1", "localhost", "::1":
+		return true
+	default:
+		return false
+	}
+}
 
 // CORSMiddleware creates a middleware that handles CORS headers.
 //
@@ -49,6 +66,9 @@ func CORSMiddleware(cfg *config.Config) gin.HandlerFunc {
 				allowed = true
 				break
 			}
+		}
+		if !allowed && cfg.CORS.AllowLoopbackDev && isLoopbackHTTPOrigin(origin) {
+			allowed = true
 		}
 
 		if allowed {
