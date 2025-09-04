@@ -4,7 +4,7 @@
 // File: cors.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-09-03
+// Last modified: 2025-09-04
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ func isLoopbackHTTPOrigin(origin string) bool {
 func CORSMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
-		
+
 		// Check if origin is allowed
 		allowed := false
 		for _, allowedOrigin := range cfg.CORS.AllowedOrigins {

@@ -4,7 +4,7 @@
 // File: router.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-08-31
+// Last modified: 2025-09-04
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,7 +39,11 @@ import (
 // redisClient may be nil (offline queue and presence disabled, health check skips Redis).
 // offlineQueue and presenceStore may be nil (offline messages dropped, presence returns offline).
 func SetupRouter(db *gorm.DB, authService service.AuthService, jwtManager *jwt.JWTManager, convSvc service.ConversationService, msgSvc service.MessageService, hub *websocket.Hub, redisClient redis.Cmdable, offlineQueue store.OfflineQueue, presenceStore store.PresenceStore) *gin.Engine {
-	router := gin.Default()
+	// Use New + Recovery only: gin.Default() also attaches gin.Logger() writing to
+	// gin.DefaultWriter (often stderr), which does not follow log.SetOutput(UIM_LOG_FILE).
+	// cmd/server applies LoggerMiddlewareSimple so [HTTP] lines share the same log sink as [AUTH]/[DB].
+	router := gin.New()
+	router.Use(gin.Recovery())
 
 	// Health check (no auth required)
 	healthHandler := NewHealthHandler(db, redisClient)
