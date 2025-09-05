@@ -61,3 +61,6 @@ temp/
 
 # For cursor rules
 .cursor/
+
+# For upa asset
+**/*.upa
