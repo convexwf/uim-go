@@ -61,14 +61,17 @@ func (m *mockConvServiceForMessage) ListByUserIDWithMeta(userID uuid.UUID, limit
 func (m *mockConvServiceForMessage) MarkRead(conversationID, userID uuid.UUID, lastReadMessageID int64) error {
 	return nil
 }
+func (m *mockConvServiceForMessage) DeleteConversation(conversationID, userID uuid.UUID) error {
+	return nil
+}
 func (m *mockConvServiceForMessage) EnsureUserInConversation(conversationID, userID uuid.UUID) error {
 	return m.ensureErr
 }
 
 type mockNotifier struct {
-	called  bool
+	called   bool
 	lastConv uuid.UUID
-	lastMsg *model.Message
+	lastMsg  *model.Message
 }
 
 func (m *mockNotifier) NotifyNewMessage(conversationID uuid.UUID, msg *model.Message) {

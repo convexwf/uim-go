@@ -120,14 +120,16 @@ func main() {
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	convRepo := repository.NewConversationRepository(db)
+	contactRepo := repository.NewContactRepository(db)
 	msgRepo := repository.NewMessageRepository(db)
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, jwtManager)
 	convSvc := service.NewConversationService(convRepo, userRepo, msgRepo)
+	contactSvc := service.NewContactService(contactRepo, userRepo, presenceStore)
 	hub := websocket.NewHub(convRepo, offlineQueue)
 	msgSvc := service.NewMessageService(msgRepo, convSvc, hub)
-	router := api.SetupRouter(cfg, db, authService, jwtManager, convSvc, msgSvc, hub, redisClient, offlineQueue, presenceStore)
+	router := api.SetupRouter(cfg, db, authService, jwtManager, convSvc, contactSvc, msgSvc, hub, redisClient, offlineQueue, presenceStore)
 
 	// Start server
 	log.Printf("Server starting on port %s", cfg.App.Port)
@@ -212,25 +214,33 @@ func checkSchemaExists(db *gorm.DB) bool {
 
 // runSQLMigration runs the initial schema SQL file (used only as fallback when AUTO_MIGRATE_FALLBACK=1).
 func runSQLMigration(db *gorm.DB) error {
-	const path = "migrations/000001_initial_schema.up.sql"
-	data, err := os.ReadFile(path)
+	paths, err := filepath.Glob("migrations/*.up.sql")
 	if err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("migration file not found: %s (run init_db.sh instead)", path)
-		}
 		return err
+	}
+	if len(paths) == 0 {
+		return fmt.Errorf("no migration files found under migrations/")
 	}
 	raw, err := db.DB()
 	if err != nil {
 		return err
 	}
-	for _, s := range strings.Split(string(data), ";") {
-		s = stripSQLComments(strings.TrimSpace(s))
-		if s == "" {
-			continue
-		}
-		if _, err := raw.Exec(s); err != nil {
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("migration file not found: %s (run init_db.sh instead)", path)
+			}
 			return err
+		}
+		for _, s := range strings.Split(string(data), ";") {
+			s = stripSQLComments(strings.TrimSpace(s))
+			if s == "" {
+				continue
+			}
+			if _, err := raw.Exec(s); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

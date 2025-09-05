@@ -17,18 +17,18 @@ import (
 )
 
 type mockConversationRepo struct {
-	createErr              error
-	getByIDConv            *model.Conversation
-	getByIDErr             error
-	listConvs              []*model.Conversation
-	listErr                error
-	addParticipantErr      error
-	findOneOnOneConv       *model.Conversation
-	findOneOnOneErr        error
-	isParticipant          bool
-	isParticipantErr       error
-	getParticipantIDs      []uuid.UUID
-	getParticipantIDsErr   error
+	createErr            error
+	getByIDConv          *model.Conversation
+	getByIDErr           error
+	listConvs            []*model.Conversation
+	listErr              error
+	addParticipantErr    error
+	findOneOnOneConv     *model.Conversation
+	findOneOnOneErr      error
+	isParticipant        bool
+	isParticipantErr     error
+	getParticipantIDs    []uuid.UUID
+	getParticipantIDsErr error
 }
 
 func (m *mockConversationRepo) Create(conv *model.Conversation) error {
@@ -67,6 +67,7 @@ func (m *mockConversationRepo) GetUnreadCounts(userID uuid.UUID, conversationIDs
 func (m *mockConversationRepo) GetOtherParticipantUserIDsForOneOnOne(currentUserID uuid.UUID, conversationIDs []uuid.UUID) (map[uuid.UUID]uuid.UUID, error) {
 	return nil, nil
 }
+func (m *mockConversationRepo) DeleteConversation(conversationID uuid.UUID) error { return nil }
 
 type mockMessageRepoForConv struct{}
 
@@ -89,8 +90,8 @@ func (m *mockUserRepo) GetByID(userID uuid.UUID) (*model.User, error) {
 	return m.getByIDUser, m.getByIDErr
 }
 func (m *mockUserRepo) GetByIDs(userIDs []uuid.UUID) ([]*model.User, error) { return nil, nil }
-func (m *mockUserRepo) GetByUsername(username string) (*model.User, error) { return nil, nil }
-func (m *mockUserRepo) GetByEmail(email string) (*model.User, error)       { return nil, nil }
+func (m *mockUserRepo) GetByUsername(username string) (*model.User, error)  { return nil, nil }
+func (m *mockUserRepo) GetByEmail(email string) (*model.User, error)        { return nil, nil }
 func (m *mockUserRepo) Update(user *model.User) error                       { return nil }
 func (m *mockUserRepo) Delete(userID uuid.UUID) error                       { return nil }
 

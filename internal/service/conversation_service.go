@@ -45,6 +45,7 @@ type ConversationService interface {
 	ListByUserIDWithMeta(userID uuid.UUID, limit, offset int) ([]*ConversationWithMeta, error)
 	EnsureUserInConversation(conversationID, userID uuid.UUID) error
 	MarkRead(conversationID, userID uuid.UUID, lastReadMessageID int64) error
+	DeleteConversation(conversationID, userID uuid.UUID) error
 }
 
 type conversationService struct {
@@ -85,8 +86,8 @@ func (s *conversationService) CreateOneOnOne(creatorID, otherUserID uuid.UUID) (
 	for _, uid := range []uuid.UUID{creatorID, otherUserID} {
 		if err := s.convRepo.AddParticipant(&model.ConversationParticipant{
 			ConversationID: conv.ConversationID,
-			UserID:        uid,
-			Role:          "member",
+			UserID:         uid,
+			Role:           "member",
 		}); err != nil {
 			return nil, fmt.Errorf("add participant: %w", err)
 		}
@@ -186,4 +187,16 @@ func (s *conversationService) MarkRead(conversationID, userID uuid.UUID, lastRea
 		return ErrNotParticipant
 	}
 	return s.convRepo.UpdateParticipantLastRead(conversationID, userID, lastReadMessageID)
+}
+
+// DeleteConversation deletes a conversation after verifying the requester is a participant.
+func (s *conversationService) DeleteConversation(conversationID, userID uuid.UUID) error {
+	ok, err := s.convRepo.IsParticipant(conversationID, userID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrNotParticipant
+	}
+	return s.convRepo.DeleteConversation(conversationID)
 }

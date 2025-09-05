@@ -32,6 +32,7 @@ type ConversationRepository interface {
 	UpdateParticipantLastRead(conversationID, userID uuid.UUID, lastReadMessageID int64) error
 	GetUnreadCounts(userID uuid.UUID, conversationIDs []uuid.UUID) (map[uuid.UUID]int, error)
 	GetOtherParticipantUserIDsForOneOnOne(currentUserID uuid.UUID, conversationIDs []uuid.UUID) (map[uuid.UUID]uuid.UUID, error)
+	DeleteConversation(conversationID uuid.UUID) error
 }
 
 type conversationRepository struct {
@@ -69,7 +70,7 @@ func (r *conversationRepository) ListByUserID(userID uuid.UUID, limit, offset in
 	var convs []*model.Conversation
 	err := r.db.Table("conversations").
 		Joins("INNER JOIN conversation_participants ON conversation_participants.conversation_id = conversations.conversation_id").
-		Where("conversation_participants.user_id = ?", userID).
+		Where("conversation_participants.user_id = ? AND conversations.deleted_at IS NULL", userID).
 		Order("conversations.updated_at DESC").
 		Limit(limit).Offset(offset).
 		Find(&convs).Error
@@ -91,7 +92,7 @@ func (r *conversationRepository) FindOneOnOneBetween(userID1, userID2 uuid.UUID)
 	err := r.db.Table("conversations").
 		Joins("INNER JOIN conversation_participants cp1 ON cp1.conversation_id = conversations.conversation_id AND cp1.user_id = ?", userID1).
 		Joins("INNER JOIN conversation_participants cp2 ON cp2.conversation_id = conversations.conversation_id AND cp2.user_id = ?", userID2).
-		Where("conversations.type = ?", model.ConversationTypeOneOnOne).
+		Where("conversations.type = ? AND conversations.deleted_at IS NULL", model.ConversationTypeOneOnOne).
 		First(&conv).Error
 	if err != nil {
 		return nil, err
@@ -170,7 +171,7 @@ func (r *conversationRepository) GetOtherParticipantUserIDsForOneOnOne(currentUs
 	err := r.db.Table("conversation_participants").
 		Select("conversation_participants.conversation_id, conversation_participants.user_id").
 		Joins("INNER JOIN conversations ON conversations.conversation_id = conversation_participants.conversation_id").
-		Where("conversations.conversation_id IN ? AND conversations.type = ? AND conversation_participants.user_id != ?",
+		Where("conversations.conversation_id IN ? AND conversations.type = ? AND conversations.deleted_at IS NULL AND conversation_participants.user_id != ?",
 			conversationIDs, model.ConversationTypeOneOnOne, currentUserID).
 		Find(&results).Error
 	if err != nil {
@@ -181,4 +182,20 @@ func (r *conversationRepository) GetOtherParticipantUserIDsForOneOnOne(currentUs
 		out[rw.ConversationID] = rw.UserID
 	}
 	return out, nil
+}
+
+// DeleteConversation permanently removes a conversation and its dependent rows.
+func (r *conversationRepository) DeleteConversation(conversationID uuid.UUID) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Unscoped().Where("conversation_id = ?", conversationID).Delete(&model.Message{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("conversation_id = ?", conversationID).Delete(&model.ConversationParticipant{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("conversation_id = ?", conversationID).Delete(&model.Conversation{}).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 }

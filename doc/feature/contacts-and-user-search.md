@@ -25,8 +25,9 @@
 - [5. API 设计](#5-api-设计)
   - [5.1 GET /api/contacts](#51-get-apicontacts)
   - [5.2 POST /api/contacts](#52-post-apicontacts)
-  - [5.3 GET /api/users/search](#53-get-apiuserssearch)
-  - [5.4 可选的后续删除接口](#54-可选的后续删除接口)
+  - [5.3 DELETE /api/contacts/:id](#53-delete-apicontactsid)
+  - [5.4 GET /api/users/search](#54-get-apiuserssearch)
+  - [5.5 DELETE /api/conversations/:id](#55-delete-apiconversationsid)
 - [6. 服务与仓储分层改造](#6-服务与仓储分层改造)
 - [7. 鉴权、约束与错误语义](#7-鉴权约束与错误语义)
 - [8. 实施步骤](#8-实施步骤)
@@ -229,7 +230,17 @@ CREATE INDEX idx_user_contacts_contact
 - `404`: 目标用户不存在
 - `409`: 若决定严格区分重复添加，可用冲突；更推荐幂等写入，直接 `200`
 
-### 5.3 GET /api/users/search
+### 5.3 DELETE /api/contacts/:id
+
+用途：删除当前用户的单向联系人关系。
+
+语义：
+
+- 只删除 `owner -> contact` 这一条记录
+- 不影响对方联系人列表
+- 重复删除返回 `204` 也可以接受，保持幂等
+
+### 5.4 GET /api/users/search
 
 用途：提供联系人添加前的用户搜索。
 
@@ -267,13 +278,15 @@ CREATE INDEX idx_user_contacts_contact
 - 初期不建议暴露 `email` 到搜索结果，减少隐私扩散面。
 - 当前接口虽然命名为 `search`，但实现语义应保持为“按 username 精确查找”。
 
-### 5.4 可选的后续删除接口
+### 5.5 DELETE /api/conversations/:id
 
-本轮不是必做，但建议在文档中预留：
+用途：删除会话。
 
-- `DELETE /api/contacts/:contact_user_id`
+当前实现建议：
 
-如果第一期只实现浏览、新增、搜索，删除可以留到下一轮，不影响总体模型。
+- 仅允许会话参与者删除
+- 初期采用**整会话删除**，会同时移除消息、参与者与会话本身
+- 该语义偏“最简实现”，后续如果需要“仅对自己隐藏会话”，再引入 per-user 会话可见性模型
 
 ---
 
@@ -363,6 +376,8 @@ flowchart LR
 - 已加入联系人时 `already_added = true`
 - A 添加 B 后，B 的联系人列表默认不出现 A
 - 非互相联系人场景下，现有 1:1 会话创建与交流流程不受影响
+- `DELETE /api/contacts/:id` 后联系人列表立即消失
+- `DELETE /api/conversations/:id` 后会话列表立即消失
 
 联调重点：
 

@@ -15,12 +15,12 @@ import (
 
 	"github.com/convexwf/uim-go/internal/api"
 	"github.com/convexwf/uim-go/internal/config"
-	"github.com/joho/godotenv"
 	"github.com/convexwf/uim-go/internal/middleware"
 	"github.com/convexwf/uim-go/internal/pkg/jwt"
 	"github.com/convexwf/uim-go/internal/repository"
 	"github.com/convexwf/uim-go/internal/service"
 	"github.com/convexwf/uim-go/internal/websocket"
+	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -39,15 +39,18 @@ func TestAuthEndpoints_RegisterLoginRefresh(t *testing.T) {
 	if err != nil {
 		t.Skipf("DB not available: %v", err)
 	}
+	applyAllMigrationsForTest(t, db)
 	jwtMgr := jwt.NewJWTManager(cfg.JWT.Secret, cfg.JWT.AccessExpiry, cfg.JWT.RefreshExpiry)
 	userRepo := repository.NewUserRepository(db)
 	convRepo := repository.NewConversationRepository(db)
+	contactRepo := repository.NewContactRepository(db)
 	msgRepo := repository.NewMessageRepository(db)
 	authSvc := service.NewAuthService(userRepo, jwtMgr)
 	convSvc := service.NewConversationService(convRepo, userRepo, msgRepo)
+	contactSvc := service.NewContactService(contactRepo, userRepo, nil)
 	hub := websocket.NewHub(convRepo, nil)
 	msgSvc := service.NewMessageService(msgRepo, convSvc, hub)
-	router := api.SetupRouter(db, authSvc, jwtMgr, convSvc, msgSvc, hub, nil, nil, nil)
+	router := api.SetupRouter(cfg, db, authSvc, jwtMgr, convSvc, contactSvc, msgSvc, hub, nil, nil, nil)
 	router.Use(middleware.CORSMiddleware(cfg))
 	router.Use(middleware.LoggerMiddlewareSimple())
 	router.Use(middleware.ErrorHandlerMiddleware())

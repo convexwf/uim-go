@@ -22,9 +22,8 @@ export PGUSER="${POSTGRES_USER:-uim_user}"
 export PGPASSWORD="${POSTGRES_PASSWORD:-uim_password}"
 export PGDATABASE="${POSTGRES_DB:-uim_db}"
 
-MIGRATION_FILE="migrations/000001_initial_schema.up.sql"
-if [ ! -f "$MIGRATION_FILE" ]; then
-  echo "Error: $MIGRATION_FILE not found (run from project root or set correct path)" >&2
+if ! ls migrations/*.up.sql >/dev/null 2>&1; then
+  echo "Error: no migration files found under migrations/." >&2
   exit 1
 fi
 
@@ -34,5 +33,8 @@ if ! command -v psql &>/dev/null; then
 fi
 
 echo "Initializing database at $PGHOST:$PGPORT/$PGDATABASE (idempotent)..."
-psql -v ON_ERROR_STOP=1 -f "$MIGRATION_FILE"
+for migration in $(ls migrations/*.up.sql | sort); do
+  echo "Applying $migration"
+  psql -v ON_ERROR_STOP=1 -f "$migration"
+done
 echo "Done."

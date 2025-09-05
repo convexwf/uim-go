@@ -22,8 +22,8 @@ import (
 	"github.com/convexwf/uim-go/internal/service"
 	"github.com/convexwf/uim-go/internal/store"
 	"github.com/convexwf/uim-go/internal/websocket"
-	"github.com/joho/godotenv"
 	gorillawebsocket "github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -40,15 +40,18 @@ func setupMessagingRouter(t *testing.T) (http.Handler, string) {
 	if err != nil {
 		t.Skipf("DB not available: %v", err)
 	}
+	applyAllMigrationsForTest(t, db)
 	jwtMgr := jwt.NewJWTManager(cfg.JWT.Secret, cfg.JWT.AccessExpiry, cfg.JWT.RefreshExpiry)
 	userRepo := repository.NewUserRepository(db)
 	convRepo := repository.NewConversationRepository(db)
+	contactRepo := repository.NewContactRepository(db)
 	msgRepo := repository.NewMessageRepository(db)
 	authSvc := service.NewAuthService(userRepo, jwtMgr)
 	convSvc := service.NewConversationService(convRepo, userRepo, msgRepo)
+	contactSvc := service.NewContactService(contactRepo, userRepo, nil)
 	hub := websocket.NewHub(convRepo, nil)
 	msgSvc := service.NewMessageService(msgRepo, convSvc, hub)
-	router := api.SetupRouter(db, authSvc, jwtMgr, convSvc, msgSvc, hub, nil, nil, nil)
+	router := api.SetupRouter(cfg, db, authSvc, jwtMgr, convSvc, contactSvc, msgSvc, hub, nil, nil, nil)
 	router.Use(middleware.CORSMiddleware(cfg))
 	router.Use(middleware.LoggerMiddlewareSimple())
 	router.Use(middleware.ErrorHandlerMiddleware())
@@ -90,6 +93,7 @@ func setupMessagingRouterWithRedis(t *testing.T) (http.Handler, string, *minired
 	if err != nil {
 		t.Skipf("DB not available: %v", err)
 	}
+	applyAllMigrationsForTest(t, db)
 	mr, err := miniredis.Run()
 	if err != nil {
 		t.Skipf("miniredis: %v", err)
@@ -103,12 +107,14 @@ func setupMessagingRouterWithRedis(t *testing.T) (http.Handler, string, *minired
 	jwtMgr := jwt.NewJWTManager(cfg.JWT.Secret, cfg.JWT.AccessExpiry, cfg.JWT.RefreshExpiry)
 	userRepo := repository.NewUserRepository(db)
 	convRepo := repository.NewConversationRepository(db)
+	contactRepo := repository.NewContactRepository(db)
 	msgRepo := repository.NewMessageRepository(db)
 	authSvc := service.NewAuthService(userRepo, jwtMgr)
 	convSvc := service.NewConversationService(convRepo, userRepo, msgRepo)
+	contactSvc := service.NewContactService(contactRepo, userRepo, presenceStore)
 	hub := websocket.NewHub(convRepo, offlineQueue)
 	msgSvc := service.NewMessageService(msgRepo, convSvc, hub)
-	router := api.SetupRouter(db, authSvc, jwtMgr, convSvc, msgSvc, hub, rdb, offlineQueue, presenceStore)
+	router := api.SetupRouter(cfg, db, authSvc, jwtMgr, convSvc, contactSvc, msgSvc, hub, rdb, offlineQueue, presenceStore)
 	router.Use(middleware.CORSMiddleware(cfg))
 	router.Use(middleware.LoggerMiddlewareSimple())
 	router.Use(middleware.ErrorHandlerMiddleware())
@@ -252,6 +258,61 @@ func TestMarkRead(t *testing.T) {
 	router.ServeHTTP(wRead, reqRead)
 	if wRead.Code != http.StatusNoContent {
 		t.Fatalf("mark read: expected 204, got %d, body %s", wRead.Code, wRead.Body.String())
+	}
+}
+
+func TestConversationDelete(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping messaging integration test in short mode")
+	}
+	router, token := setupMessagingRouter(t)
+	bobID := getBobUserID(t, router)
+	if bobID == "" {
+		t.Skip("could not get bob user_id")
+	}
+
+	createBody := map[string]string{"other_user_id": bobID}
+	createJSON, _ := json.Marshal(createBody)
+	req := httptest.NewRequest(http.MethodPost, "/api/conversations", bytes.NewReader(createJSON))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("create conversation: status %d, body %s", w.Code, w.Body.String())
+	}
+	var conv map[string]interface{}
+	_ = json.NewDecoder(w.Body).Decode(&conv)
+	convID, _ := conv["conversation_id"].(string)
+	if convID == "" {
+		t.Fatal("missing conversation_id")
+	}
+
+	delReq := httptest.NewRequest(http.MethodDelete, "/api/conversations/"+convID, nil)
+	delReq.Header.Set("Authorization", "Bearer "+token)
+	delW := httptest.NewRecorder()
+	router.ServeHTTP(delW, delReq)
+	if delW.Code != http.StatusNoContent {
+		t.Fatalf("delete conversation: expected 204, got %d, body %s", delW.Code, delW.Body.String())
+	}
+
+	listReq := httptest.NewRequest(http.MethodGet, "/api/conversations", nil)
+	listReq.Header.Set("Authorization", "Bearer "+token)
+	listW := httptest.NewRecorder()
+	router.ServeHTTP(listW, listReq)
+	if listW.Code != http.StatusOK {
+		t.Fatalf("list conversations after delete: status %d, body %s", listW.Code, listW.Body.String())
+	}
+	var listResp struct {
+		Conversations []map[string]interface{} `json:"conversations"`
+	}
+	if err := json.NewDecoder(listW.Body).Decode(&listResp); err != nil {
+		t.Fatalf("decode conversation list: %v", err)
+	}
+	for _, item := range listResp.Conversations {
+		if gotID, _ := item["conversation_id"].(string); gotID == convID {
+			t.Fatalf("deleted conversation %s still present in list", convID)
+		}
 	}
 }
 

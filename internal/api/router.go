@@ -39,7 +39,7 @@ import (
 //
 // redisClient may be nil (offline queue and presence disabled, health check skips Redis).
 // offlineQueue and presenceStore may be nil (offline messages dropped, presence returns offline).
-func SetupRouter(cfg *config.Config, db *gorm.DB, authService service.AuthService, jwtManager *jwt.JWTManager, convSvc service.ConversationService, msgSvc service.MessageService, hub *websocket.Hub, redisClient redis.Cmdable, offlineQueue store.OfflineQueue, presenceStore store.PresenceStore) *gin.Engine {
+func SetupRouter(cfg *config.Config, db *gorm.DB, authService service.AuthService, jwtManager *jwt.JWTManager, convSvc service.ConversationService, contactSvc service.ContactService, msgSvc service.MessageService, hub *websocket.Hub, redisClient redis.Cmdable, offlineQueue store.OfflineQueue, presenceStore store.PresenceStore) *gin.Engine {
 	// Use New + Recovery only: gin.Default() also attaches gin.Logger() writing to
 	// gin.DefaultWriter (often stderr), which does not follow log.SetOutput(UIM_LOG_FILE).
 	// cmd/server applies LoggerMiddlewareSimple so [HTTP] lines share the same log sink as [AUTH]/[DB].
@@ -83,9 +83,16 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, authService service.AuthServic
 			protected.POST("/conversations", convHandler.CreateOneOnOne)
 			protected.GET("/conversations", convHandler.List)
 			protected.POST("/conversations/:id/read", convHandler.MarkRead)
+			protected.DELETE("/conversations/:id", convHandler.DeleteConversation)
 
 			msgHandler := NewMessageHandler(msgSvc)
 			protected.GET("/conversations/:id/messages", msgHandler.ListByConversation)
+
+			contactHandler := NewContactHandler(contactSvc)
+			protected.GET("/contacts", contactHandler.ListContacts)
+			protected.POST("/contacts", contactHandler.AddContact)
+			protected.DELETE("/contacts/:id", contactHandler.DeleteContact)
+			protected.GET("/users/search", contactHandler.SearchUsers)
 
 			presenceHandler := NewPresenceHandler(presenceStore)
 			protected.GET("/users/:id/presence", presenceHandler.GetPresence)

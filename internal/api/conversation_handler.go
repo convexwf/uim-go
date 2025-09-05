@@ -141,8 +141,8 @@ func conversationWithMetaToListItem(m *service.ConversationWithMeta) Conversatio
 		Name:           m.Conv.Name,
 		CreatedBy:      m.Conv.CreatedBy.String(),
 		CreatedAt:      m.Conv.CreatedAt,
-		UpdatedAt:     m.Conv.UpdatedAt,
-		UnreadCount:   m.UnreadCount,
+		UpdatedAt:      m.Conv.UpdatedAt,
+		UnreadCount:    m.UnreadCount,
 	}
 	if m.OtherUser != nil {
 		item.OtherUser = &UserSummary{
@@ -193,6 +193,36 @@ func (h *ConversationHandler) MarkRead(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to mark read"})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// DeleteConversation removes a conversation for all participants.
+// DELETE /api/conversations/:id
+func (h *ConversationHandler) DeleteConversation(c *gin.Context) {
+	userID, err := getUserIDFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+	convIDStr := c.Param("id")
+	if convIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing conversation id"})
+		return
+	}
+	convID, err := uuid.Parse(convIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid conversation id"})
+		return
+	}
+	err = h.convSvc.DeleteConversation(convID, userID)
+	if err != nil {
+		if err == service.ErrNotParticipant {
+			c.JSON(http.StatusForbidden, gin.H{"error": "not a participant"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete conversation"})
 		return
 	}
 	c.Status(http.StatusNoContent)
