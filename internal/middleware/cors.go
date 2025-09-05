@@ -4,7 +4,7 @@
 // File: cors.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-09-04
+// Last modified: 2025-09-05
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,9 +30,13 @@ import (
 	"github.com/convexwf/uim-go/internal/config"
 )
 
-// isLoopbackHTTPOrigin reports whether origin is http://127.0.0.1, http://localhost, or http://[::1] with any port.
-// Browsers do not let arbitrary sites spoof these Origin values, so allowing them is safe for credentialed API access from local dev / Flutter WebView.
-func isLoopbackHTTPOrigin(origin string) bool {
+// isLocalDevOrigin reports whether origin is a trusted local dev browser origin.
+// Besides loopback HTTP origins, Android WebView may send Origin: null for loadHtmlString-based pages,
+// so we also allow the literal "null" when local dev mode is enabled.
+func isLocalDevOrigin(origin string) bool {
+	if origin == "null" {
+		return true
+	}
 	u, err := url.Parse(origin)
 	if err != nil || u.Scheme != "http" {
 		return false
@@ -67,7 +71,7 @@ func CORSMiddleware(cfg *config.Config) gin.HandlerFunc {
 				break
 			}
 		}
-		if !allowed && cfg.CORS.AllowLoopbackDev && isLoopbackHTTPOrigin(origin) {
+		if !allowed && cfg.CORS.AllowLoopbackDev && isLocalDevOrigin(origin) {
 			allowed = true
 		}
 

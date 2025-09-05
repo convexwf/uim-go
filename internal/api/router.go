@@ -4,7 +4,7 @@
 // File: router.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-09-04
+// Last modified: 2025-09-05
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"github.com/convexwf/uim-go/internal/config"
 	"github.com/convexwf/uim-go/internal/middleware"
 	"github.com/convexwf/uim-go/internal/pkg/jwt"
 	"github.com/convexwf/uim-go/internal/service"
@@ -38,12 +39,19 @@ import (
 //
 // redisClient may be nil (offline queue and presence disabled, health check skips Redis).
 // offlineQueue and presenceStore may be nil (offline messages dropped, presence returns offline).
-func SetupRouter(db *gorm.DB, authService service.AuthService, jwtManager *jwt.JWTManager, convSvc service.ConversationService, msgSvc service.MessageService, hub *websocket.Hub, redisClient redis.Cmdable, offlineQueue store.OfflineQueue, presenceStore store.PresenceStore) *gin.Engine {
+func SetupRouter(cfg *config.Config, db *gorm.DB, authService service.AuthService, jwtManager *jwt.JWTManager, convSvc service.ConversationService, msgSvc service.MessageService, hub *websocket.Hub, redisClient redis.Cmdable, offlineQueue store.OfflineQueue, presenceStore store.PresenceStore) *gin.Engine {
 	// Use New + Recovery only: gin.Default() also attaches gin.Logger() writing to
 	// gin.DefaultWriter (often stderr), which does not follow log.SetOutput(UIM_LOG_FILE).
 	// cmd/server applies LoggerMiddlewareSimple so [HTTP] lines share the same log sink as [AUTH]/[DB].
 	router := gin.New()
 	router.Use(gin.Recovery())
+	// Register middleware before routes so normal handlers and preflight requests both
+	// receive CORS / logging / error handling consistently.
+	router.Use(
+		middleware.CORSMiddleware(cfg),
+		middleware.LoggerMiddlewareSimple(),
+		middleware.ErrorHandlerMiddleware(),
+	)
 
 	// Health check (no auth required)
 	healthHandler := NewHealthHandler(db, redisClient)

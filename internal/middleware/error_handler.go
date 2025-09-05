@@ -4,7 +4,7 @@
 // File: error_handler.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-03-13
+// Last modified: 2025-09-05
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 		// Check if there are any errors
 		if len(c.Errors) > 0 {
 			err := c.Errors.Last()
-			
+
 			// Default to 500 if no status code is set
 			statusCode := http.StatusInternalServerError
 			if c.Writer.Status() != 0 {

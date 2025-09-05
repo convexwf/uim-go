@@ -4,7 +4,7 @@
 // File: main.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-08-29
+// Last modified: 2025-09-05
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ import (
 
 	"github.com/convexwf/uim-go/internal/api"
 	"github.com/convexwf/uim-go/internal/config"
-	"github.com/convexwf/uim-go/internal/middleware"
 	"github.com/convexwf/uim-go/internal/pkg/jwt"
 	"github.com/convexwf/uim-go/internal/repository"
 	"github.com/convexwf/uim-go/internal/service"
@@ -128,12 +127,7 @@ func main() {
 	convSvc := service.NewConversationService(convRepo, userRepo, msgRepo)
 	hub := websocket.NewHub(convRepo, offlineQueue)
 	msgSvc := service.NewMessageService(msgRepo, convSvc, hub)
-	router := api.SetupRouter(db, authService, jwtManager, convSvc, msgSvc, hub, redisClient, offlineQueue, presenceStore)
-
-	// Apply middleware
-	router.Use(middleware.CORSMiddleware(cfg))
-	router.Use(middleware.LoggerMiddlewareSimple())
-	router.Use(middleware.ErrorHandlerMiddleware())
+	router := api.SetupRouter(cfg, db, authService, jwtManager, convSvc, msgSvc, hub, redisClient, offlineQueue, presenceStore)
 
 	// Start server
 	log.Printf("Server starting on port %s", cfg.App.Port)

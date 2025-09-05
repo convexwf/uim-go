@@ -4,7 +4,7 @@
 // File: auth_handler.go
 // Email: convexwf@gmail.com
 // Created: 2025-03-13
-// Last modified: 2025-08-31
+// Last modified: 2025-09-05
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -191,9 +191,9 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	log.Printf("[AUTH] refresh success")
 
 	c.JSON(http.StatusOK, gin.H{
-		"user":            user,
-		"access_token":    accessToken,
-		"refresh_token":   refreshToken,
+		"user":          user,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
 	})
 }
 
